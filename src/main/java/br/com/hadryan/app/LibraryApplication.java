@@ -1,38 +1,54 @@
 package br.com.hadryan.app;
 
+import br.com.hadryan.app.model.repository.RepositoryFactory;
+import br.com.hadryan.app.service.ServiceFactory;
 import br.com.hadryan.app.util.JPAUtil;
+import br.com.hadryan.app.util.MessageUtil;
+import br.com.hadryan.app.util.UIUtil;
 import br.com.hadryan.app.view.MainFrame;
 
 import javax.swing.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * Classe principal da aplicação.
+ * Responsável por inicializar os recursos e abrir a janela principal.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
+ */
 public class LibraryApplication {
 
+    private static final Logger LOGGER = Logger.getLogger(LibraryApplication.class.getName());
+
     /**
-     * Application entry point
+     * Ponto de entrada da aplicação
      *
-     * @param args Command line arguments
+     * @param args Argumentos de linha de comando
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Set look and feel to system default
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                // Configura a aparência da aplicação
+                UIUtil.setupLookAndFeel();
 
-                // Initialize database connection if needed
+                // Inicializa o banco de dados
                 initializeDatabase();
 
-                // Create and show main application frame
+                // Cria e exibe a janela principal
                 MainFrame mainFrame = new MainFrame();
                 mainFrame.setVisible(true);
 
             } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                        "Error starting application: " + e.getMessage(),
-                        "Application Error", JOptionPane.ERROR_MESSAGE);
+                LOGGER.log(Level.SEVERE, "Erro ao iniciar a aplicação", e);
 
-                // Close resources
-                JPAUtil.close();
+                MessageUtil.showError(null,
+                        "Erro ao iniciar a aplicação: " + e.getMessage(),
+                        "Erro de Inicialização");
+
+                // Fecha recursos
+                cleanupResources();
 
                 System.exit(1);
             }
@@ -40,17 +56,36 @@ public class LibraryApplication {
     }
 
     /**
-     * Initializes the database connection
+     * Inicializa a conexão com o banco de dados
      *
-     * @throws Exception if database initialization fails
+     * @throws Exception se a inicialização do banco de dados falhar
      */
     private static void initializeDatabase() throws Exception {
         try {
-            // Test database connection by getting an EntityManager
+            // Testa a conexão com o banco de dados
             JPAUtil.getEntityManager().close();
+            LOGGER.info("Conexão com o banco de dados estabelecida com sucesso.");
         } catch (Exception e) {
-            throw new Exception("Failed to initialize database: " + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "Falha ao inicializar o banco de dados", e);
+            throw new Exception("Falha ao inicializar o banco de dados: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Limpa recursos utilizados pela aplicação
+     */
+    public static void cleanupResources() {
+        try {
+            // Fecha as factories
+            ServiceFactory.getInstance().closeAll();
+            RepositoryFactory.getInstance().closeAll();
+
+            // Fecha o EntityManagerFactory
+            JPAUtil.close();
+
+            LOGGER.info("Recursos liberados com sucesso.");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao liberar recursos", e);
+        }
+    }
 }

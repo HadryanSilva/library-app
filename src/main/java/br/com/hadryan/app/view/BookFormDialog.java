@@ -4,52 +4,56 @@ import br.com.hadryan.app.controller.BookController;
 import br.com.hadryan.app.model.entity.Author;
 import br.com.hadryan.app.model.entity.Book;
 import br.com.hadryan.app.model.entity.Publisher;
-import br.com.hadryan.app.service.OpenLibraryService;
+import br.com.hadryan.app.util.DateUtil;
+import br.com.hadryan.app.util.MessageUtil;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Diálogo para criação e edição de livros.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
+ */
 public class BookFormDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
 
     private final Book book;
     private final BookController bookController;
-    private final OpenLibraryService openLibraryService;
     private final boolean isEditMode;
     private boolean confirmed;
 
-    // Form fields
+    // Componentes do formulário
     private JTextField titleField;
     private JTextField isbnField;
     private JTextField publisherField;
     private JTextField pubDateField;
     private JTextArea authorsArea;
-    private JTextArea similarBooksArea;
+    private SimilarBooksSelector similarBooksSelector;
 
-    // Buttons
+    // Botões
     private JButton saveButton;
     private JButton cancelButton;
     private JButton lookupButton;
 
     /**
-     * Constructs the book form dialog
+     * Construtor do diálogo
      *
-     * @param parent Parent frame
-     * @param book Book to edit, or null for a new book
+     * @param parent Frame pai
+     * @param book Livro a ser editado, ou null para um novo livro
      */
     public BookFormDialog(JFrame parent, Book book) {
-        super(parent, "Book Form", true);
-        this.book = book;
+        super(parent, (book == null ? "Novo Livro" : "Editar Livro"), true);
+        this.book = (book == null) ? new Book() : book;
         this.bookController = new BookController();
-        this.openLibraryService = new OpenLibraryService();
         this.isEditMode = (book != null);
         this.confirmed = false;
 
@@ -63,66 +67,75 @@ public class BookFormDialog extends JDialog {
     }
 
     /**
-     * Initializes the UI components
+     * Inicializa os componentes da UI
      */
     private void initComponents() {
-        // Form fields
+        // Campos do formulário
         titleField = new JTextField(30);
         isbnField = new JTextField(20);
         publisherField = new JTextField(30);
         pubDateField = new JTextField(10);
         authorsArea = new JTextArea(3, 30);
-        similarBooksArea = new JTextArea(3, 30);
+        authorsArea.setLineWrap(true);
+        authorsArea.setWrapStyleWord(true);
 
-        // Buttons
-        saveButton = new JButton(isEditMode ? "Update" : "Save");
-        cancelButton = new JButton("Cancel");
-        lookupButton = new JButton("Lookup ISBN");
+        // Componente para seleção de livros similares
+        similarBooksSelector = new SimilarBooksSelector(this, bookController);
+
+        // Botões
+        saveButton = new JButton(isEditMode ? "Atualizar" : "Salvar");
+        cancelButton = new JButton("Cancelar");
+        lookupButton = new JButton("Buscar por ISBN");
     }
 
     /**
-     * Lays out the components
+     * Configura o layout do diálogo
      */
     private void layoutComponents() {
-        // Form panel
+        // Painel do formulário
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // ISBN and lookup button in same row
+        // ISBN e botão de busca na mesma linha
         gbc.gridx = 0;
         gbc.gridy = 0;
         formPanel.add(new JLabel("ISBN:"), gbc);
 
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         formPanel.add(isbnField, gbc);
 
         gbc.gridx = 2;
         gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0.0;
         formPanel.add(lookupButton, gbc);
 
-        // Title
+        // Título
         gbc.gridx = 0;
         gbc.gridy = 1;
-        formPanel.add(new JLabel("Title:"), gbc);
+        formPanel.add(new JLabel("Título:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         formPanel.add(titleField, gbc);
 
-        // Authors
+        // Autores
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
         gbc.fill = GridBagConstraints.NONE;
-        formPanel.add(new JLabel("Authors:"), gbc);
+        formPanel.add(new JLabel("Autores:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         JScrollPane authorsScroll = new JScrollPane(authorsArea);
         formPanel.add(authorsScroll, gbc);
 
@@ -130,58 +143,66 @@ public class BookFormDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
         gbc.fill = GridBagConstraints.NONE;
-        formPanel.add(new JLabel("Publisher:"), gbc);
+        formPanel.add(new JLabel("Editora:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         formPanel.add(publisherField, gbc);
 
-        // Publication Date
+        // Data de publicação
         gbc.gridx = 0;
         gbc.gridy = 4;
         gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
         gbc.fill = GridBagConstraints.NONE;
-        formPanel.add(new JLabel("Publication Date:"), gbc);
+        formPanel.add(new JLabel("Data de Publicação:"), gbc);
 
         gbc.gridx = 1;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         formPanel.add(pubDateField, gbc);
 
-        // Similar Books
-        gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridx = 2;
         gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.NONE;
-        formPanel.add(new JLabel("Similar Books:"), gbc);
+        gbc.weightx = 0.0;
+        formPanel.add(new JLabel("(yyyy-MM-dd)"), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
+        // Livros similares
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 3;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        JScrollPane similarBooksScroll = new JScrollPane(similarBooksArea);
-        formPanel.add(similarBooksScroll, gbc);
+        gbc.weightx = 1.0;
+        formPanel.add(new JLabel("Livros Similares (ISBNs separados por vírgula):"), gbc);
 
-        // Help text for similar books
-        gbc.gridx = 1;
         gbc.gridy = 6;
-        gbc.gridwidth = 2;
-        formPanel.add(new JLabel("(Enter ISBNs separated by commas)"), gbc);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        formPanel.add(similarBooksSelector, gbc);
 
-        // Button panel
+        // Painel de botões
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        // Main layout
+        // Layout principal
         setLayout(new BorderLayout());
         add(formPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+
+        // Tamanho mínimo do diálogo
+        setMinimumSize(new Dimension(500, 400));
+        setSize(600, 500);
     }
 
     /**
-     * Sets up event listeners
+     * Configura os listeners de eventos
      */
     private void setupListeners() {
         saveButton.addActionListener(this::saveBook);
@@ -190,15 +211,15 @@ public class BookFormDialog extends JDialog {
     }
 
     /**
-     * Populates the form fields with book data
+     * Preenche os campos com os dados do livro
      */
     private void populateFields() {
         if (!isEditMode) {
-            // New book, leave fields empty
+            // Livro novo, deixa campos vazios
             return;
         }
 
-        // Populate fields with book data
+        // Preenche campos com os dados do livro
         titleField.setText(book.getTitle());
         isbnField.setText(book.getIsbn());
 
@@ -207,171 +228,160 @@ public class BookFormDialog extends JDialog {
         }
 
         if (book.getPublicationDate() != null) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            pubDateField.setText(dateFormat.format(book.getPublicationDate()));
+            pubDateField.setText(DateUtil.format(book.getPublicationDate()));
         }
 
-        // Authors as comma-separated list
+        // Autores como lista separada por vírgulas
         String authors = book.getAuthors().stream()
                 .map(Author::getName)
                 .collect(Collectors.joining(", "));
         authorsArea.setText(authors);
 
-        // Similar books as comma-separated ISBNs
-        String similarBooks = book.getSimilarBooks().stream()
-                .map(Book::getIsbn)
-                .collect(Collectors.joining(", "));
-        similarBooksArea.setText(similarBooks);
+        // Define o livro atual no seletor de livros similares
+        similarBooksSelector.setCurrentBook(book);
     }
 
     /**
-     * Saves the book data
+     * Salva o livro
      *
-     * @param e Action event
+     * @param e Evento de ação
      */
     private void saveBook(ActionEvent e) {
-        // Validate required fields
+        // Valida campos obrigatórios
         if (isbnField.getText().trim().isEmpty() || titleField.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "ISBN and Title are required fields.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            MessageUtil.showError(this,
+                    "ISBN e Título são campos obrigatórios.",
+                    "Erro de Validação");
             return;
         }
 
-        // Create or update book object
-        Book bookToSave = isEditMode ? book : new Book();
+        // Cria ou atualiza o objeto livro
+        book.setTitle(titleField.getText().trim());
+        book.setIsbn(isbnField.getText().trim());
 
-        // Set basic properties
-        bookToSave.setTitle(titleField.getText().trim());
-        bookToSave.setIsbn(isbnField.getText().trim());
-
-        // Parse publication date
+        // Data de publicação
         if (!pubDateField.getText().trim().isEmpty()) {
-            LocalDate pubDate = LocalDate.parse(pubDateField.getText().trim());
-            bookToSave.setPublicationDate(pubDate);
+            LocalDate pubDate = DateUtil.parse(pubDateField.getText().trim());
+            if (pubDate == null) {
+                MessageUtil.showError(this,
+                        "Formato de data inválido. Use o formato yyyy-MM-dd.",
+                        "Erro de Validação");
+                return;
+            }
+            book.setPublicationDate(pubDate);
         }
 
-        // Set publisher
+        // Editora
         if (!publisherField.getText().trim().isEmpty()) {
             Publisher publisher = new Publisher(publisherField.getText().trim());
-            bookToSave.setPublisher(publisher);
+            book.setPublisher(publisher);
         }
 
-        // Set authors
+        // Autores
         Set<Author> authors = new HashSet<>();
         if (!authorsArea.getText().trim().isEmpty()) {
             String[] authorNames = authorsArea.getText().split(",");
             for (String name : authorNames) {
-                if (!name.trim().isEmpty()) {
-                    authors.add(new Author(name.trim()));
+                String trimmedName = name.trim();
+                if (!trimmedName.isEmpty()) {
+                    authors.add(new Author(trimmedName));
                 }
             }
         }
-        bookToSave.setAuthors(authors);
-
-        // Set similar books
-        if (!similarBooksArea.getText().trim().isEmpty()) {
-            Set<Book> similarBooks = new HashSet<>();
-            String[] isbnList = similarBooksArea.getText().split(",");
-            for (String isbn : isbnList) {
-                isbn = isbn.trim();
-                if (!isbn.isEmpty()) {
-                    Optional<Book> similarBook = bookController.findByIsbn(isbn);
-                    similarBook.ifPresent(similarBooks::add);
-                }
-            }
-            bookToSave.setSimilarBooks(similarBooks);
-        }
+        book.setAuthors(authors);
 
         try {
-            // Save the book
-            bookController.save(bookToSave);
+            // Salva o livro
+            Book savedBook = bookController.save(book);
+
+            // Atualiza os livros similares
+            List<String> similarIsbns = similarBooksSelector.getSelectedIsbns();
+            bookController.updateSimilarBooks(savedBook, similarIsbns);
+
             confirmed = true;
             dispose();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error saving book: " + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            MessageUtil.showError(this,
+                    "Erro ao salvar livro: " + ex.getMessage(),
+                    "Erro");
         }
     }
 
     /**
-     * Looks up book information by ISBN
+     * Busca informações do livro pelo ISBN
      *
-     * @param e Action event
+     * @param e Evento de ação
      */
     private void lookupByIsbn(ActionEvent e) {
         String isbn = isbnField.getText().trim();
         if (isbn.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Please enter an ISBN to lookup.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            MessageUtil.showError(this,
+                    "Digite um ISBN para busca.",
+                    "Erro de Validação");
             return;
         }
 
-        // Disable the lookup button and show a progress message
+        // Desabilita o botão de busca e mostra mensagem de progresso
         lookupButton.setEnabled(false);
-        lookupButton.setText("Looking up...");
+        lookupButton.setText("Buscando...");
 
-        // Use SwingWorker to perform the lookup in the background
-        new SwingWorker<Optional<Book>, Void>() {
+        // Utiliza SwingWorker para realizar a busca em segundo plano
+        new SwingWorker<Book, Void>() {
             @Override
-            protected Optional<Book> doInBackground() {
-                return openLibraryService.findBookByIsbn(isbn);
+            protected Book doInBackground() {
+                return bookController.findBookByIsbnAPI(isbn)
+                        .orElse(null);
             }
 
             @Override
             protected void done() {
                 try {
-                    Optional<Book> result = get();
-                    if (result.isPresent()) {
-                        // Populate the form fields with the retrieved data
-                        Book lookupBook = result.get();
-                        titleField.setText(lookupBook.getTitle());
+                    Book result = get();
+                    if (result != null) {
+                        // Preenche os campos com os dados recuperados
+                        titleField.setText(result.getTitle());
 
-                        if (lookupBook.getPublisher() != null) {
-                            publisherField.setText(lookupBook.getPublisher().getName());
+                        if (result.getPublisher() != null) {
+                            publisherField.setText(result.getPublisher().getName());
                         }
 
-                        if (lookupBook.getPublicationDate() != null) {
-                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                            pubDateField.setText(dateFormat.format(lookupBook.getPublicationDate()));
+                        if (result.getPublicationDate() != null) {
+                            pubDateField.setText(DateUtil.format(result.getPublicationDate()));
                         }
 
-                        // Authors as comma-separated list
-                        String authors = lookupBook.getAuthors().stream()
+                        // Autores como lista separada por vírgulas
+                        String authors = result.getAuthors().stream()
                                 .map(Author::getName)
                                 .collect(Collectors.joining(", "));
                         authorsArea.setText(authors);
 
-                        JOptionPane.showMessageDialog(BookFormDialog.this,
-                                "Book found and data loaded.",
-                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                        MessageUtil.showInfo(BookFormDialog.this,
+                                "Livro encontrado e dados carregados.",
+                                "Sucesso");
                     } else {
-                        JOptionPane.showMessageDialog(BookFormDialog.this,
-                                "No book found with ISBN: " + isbn,
-                                "Not Found", JOptionPane.WARNING_MESSAGE);
+                        MessageUtil.showWarning(BookFormDialog.this,
+                                "Nenhum livro encontrado com ISBN: " + isbn,
+                                "Não Encontrado");
                     }
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(BookFormDialog.this,
-                            "Error looking up ISBN: " + ex.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                    MessageUtil.showError(BookFormDialog.this,
+                            "Erro na busca por ISBN: " + ex.getMessage(),
+                            "Erro");
                 } finally {
-                    // Re-enable the lookup button
+                    // Reabilita o botão de busca
                     lookupButton.setEnabled(true);
-                    lookupButton.setText("Lookup ISBN");
+                    lookupButton.setText("Buscar por ISBN");
                 }
             }
         }.execute();
     }
 
     /**
-     * Checks if the form was confirmed (saved)
+     * Verifica se o formulário foi confirmado (salvo)
      *
-     * @return true if saved, false otherwise
+     * @return true se foi salvo, false caso contrário
      */
     public boolean isConfirmed() {
         return confirmed;
     }
-
 }
