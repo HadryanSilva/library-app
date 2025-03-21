@@ -18,7 +18,7 @@ public class JPAUtil {
     private static void initialize() {
         try {
             if (entityManagerFactory == null) {
-                entityManagerFactory = Persistence.createEntityManagerFactory("LibraryPU");
+                entityManagerFactory = Persistence.createEntityManagerFactory("default");
             }
         } catch (Exception ex) {
             throw new RuntimeException("Error initializing EntityManagerFactory", ex);
