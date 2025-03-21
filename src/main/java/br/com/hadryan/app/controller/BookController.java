@@ -1,139 +1,153 @@
 package br.com.hadryan.app.controller;
 
 import br.com.hadryan.app.model.entity.Book;
-import br.com.hadryan.app.model.repository.BookRepository;
-import br.com.hadryan.app.service.OpenLibraryService;
+import br.com.hadryan.app.service.BookService;
+import br.com.hadryan.app.service.ServiceFactory;
+import br.com.hadryan.app.service.factory.SimilarBookService;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Controller para operações relacionadas a livros.
+ * Implementa o padrão MVC, sendo o intermediário entre a View e o Service.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
+ */
 public class BookController {
 
     private static final Logger LOGGER = Logger.getLogger(BookController.class.getName());
 
-    private final BookRepository bookRepository;
-    private final OpenLibraryService openLibraryService;
+    private final BookService bookService;
+    private final SimilarBookService similarBookService;
 
+    /**
+     * Construtor padrão que obtém os serviços da Factory
+     */
     public BookController() {
-        bookRepository = new BookRepository();
-        openLibraryService = new OpenLibraryService();
+        ServiceFactory serviceFactory = ServiceFactory.getInstance();
+        this.bookService = serviceFactory.getBookService();
+        this.similarBookService = serviceFactory.getSimilarBooksService();
     }
 
     /**
-     * Saves a book to the database
+     * Salva um livro
      *
-     * @param book Book to be saved
-     * @return Saved book with generated ID
+     * @param book Livro a ser salvo
+     * @return Livro salvo com ID gerado
      */
     public Book save(Book book) {
         try {
-            return bookRepository.save(book);
+            return bookService.save(book);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error saving book", e);
-            throw new RuntimeException("Error saving book: " + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "Erro ao salvar livro", e);
+            throw new RuntimeException("Erro ao salvar livro: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Finds a book by ID
+     * Busca um livro pelo ID
      *
-     * @param id ID of the book
-     * @return Optional containing the book, if found
+     * @param id ID do livro
+     * @return Optional contendo o livro, se encontrado
      */
     public Optional<Book> findById(Long id) {
-        return bookRepository.findById(id);
+        return bookService.findById(id);
     }
 
     /**
-     * Finds a book by ISBN
+     * Busca um livro pelo ISBN
      *
-     * @param isbn ISBN of the book
-     * @return Optional containing the book, if found
+     * @param isbn ISBN do livro
+     * @return Optional contendo o livro, se encontrado
      */
     public Optional<Book> findByIsbn(String isbn) {
-        return bookRepository.findByIsbn(isbn);
+        return bookService.findByIsbn(isbn);
     }
 
     /**
-     * Lists all books
+     * Lista todos os livros
      *
-     * @return List of all books
+     * @return Lista de todos os livros
      */
     public List<Book> findAll() {
-        return bookRepository.findAll();
+        return bookService.findAll();
     }
 
     /**
-     * Deletes a book by ID
+     * Exclui um livro pelo ID
      *
-     * @param id ID of the book to delete
+     * @param id ID do livro a excluir
      */
     public void delete(Long id) {
         try {
-            bookRepository.delete(id);
+            bookService.delete(id);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error deleting book with ID: " + id, e);
-            throw new RuntimeException("Error deleting book: " + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "Erro ao excluir livro com ID: " + id, e);
+            throw new RuntimeException("Erro ao excluir livro: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Searches for books based on criteria
+     * Busca livros que correspondam aos critérios de pesquisa
      *
-     * @param book Book with search criteria
-     * @return List of books matching the criteria
+     * @param criteria Objeto Livro com os critérios de pesquisa
+     * @return Lista de livros que correspondem aos critérios
      */
-    public List<Book> search(Book book) {
-        return bookRepository.search(book);
+    public List<Book> search(Book criteria) {
+        return bookService.search(criteria);
     }
 
     /**
-     * Finds book data by ISBN from the OpenLibrary API
-     * If the book already exists in the database, returns the existing one
+     * Busca dados do livro pelo ISBN na API do OpenLibrary
+     * Se o livro já existir no banco de dados, retorna o existente
      *
-     * @param isbn ISBN of the book
-     * @return Optional containing the book, if found
+     * @param isbn ISBN do livro
+     * @return Optional contendo o livro, se encontrado
      */
     public Optional<Book> findBookByIsbnAPI(String isbn) {
-        // First check if the book already exists in the database
-        Optional<Book> existingBook = bookRepository.findByIsbn(isbn);
-        if (existingBook.isPresent()) {
-            return existingBook;
-        }
-
-        // If not found in the database, try to fetch from the API
-        return openLibraryService.findBookByIsbn(isbn);
+        return bookService.findBookByIsbnAPI(isbn);
     }
 
     /**
-     * Updates an existing book with data from the API
+     * Atualiza um livro existente com dados da API
      *
-     * @param book Book to update
-     * @return Updated book
+     * @param book Livro a atualizar
+     * @return Livro atualizado
      */
     public Book updateFromAPI(Book book) {
-        if (book.getIsbn() == null || book.getIsbn().isEmpty()) {
-            throw new IllegalArgumentException("ISBN is required for API lookup");
-        }
-
-        Optional<Book> apiBook = openLibraryService.findBookByIsbn(book.getIsbn());
-        if (apiBook.isPresent()) {
-            Book updatedBook = apiBook.get();
-            // Preserve the ID of the original book
-            updatedBook.setId(book.getId());
-            return bookRepository.save(updatedBook);
-        }
-
-        return book;
+        return bookService.updateFromAPI(book);
     }
 
     /**
-     * Closes resources used by the controller
+     * Atualiza os livros similares de um livro
+     *
+     * @param book Livro a ser atualizado
+     * @param similarIsbnList Lista de ISBNs dos livros similares
+     * @return Livro atualizado
      */
-    public void close() {
-        bookRepository.close();
+    public Book updateSimilarBooks(Book book, List<String> similarIsbnList) {
+        return similarBookService.updateSimilarBooks(book, similarIsbnList);
     }
 
+    /**
+     * Sugere livros similares com base nos livros existentes
+     *
+     * @param book Livro para sugerir similares
+     * @param maxResults Número máximo de resultados
+     * @return Lista de livros similares sugeridos
+     */
+    public List<Book> suggestSimilarBooks(Book book, int maxResults) {
+        return similarBookService.suggestSimilarBooks(book, maxResults);
+    }
+
+    /**
+     * Fecha recursos utilizados pelo controller
+     */
+    public void close() {
+        bookService.close();
+    }
 }
