@@ -1,6 +1,6 @@
 package br.com.hadryan.app.view;
 
-import br.com.hadryan.app.service.ImportService;
+import br.com.hadryan.app.service.factory.ImportService;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -224,10 +224,7 @@ public class ImportPanel extends JPanel {
         logArea.append("Detected file type: " + fileType + "\n");
         logArea.append("Processing...\n");
 
-        // Perform import
-        int count = importService.importBooks(file);
-
-        return count;
+        return importService.importBooks(file);
     }
 
 }
