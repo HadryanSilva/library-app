@@ -37,10 +37,10 @@ public class ImportService {
     public ImportService(LivroRepository livroRepository) {
         this.livroRepository = livroRepository;
 
-        // Inicializa as estratégias disponíveis
         this.estrategias = new ArrayList<>();
         this.estrategias.add(new CsvImportStrategy());
         this.estrategias.add(new XmlImportStrategy());
+        this.estrategias.add(new FixedWidthImportStrategy());
     }
 
     /**
@@ -52,16 +52,12 @@ public class ImportService {
      * @throws IllegalArgumentException se o formato do arquivo não for suportado
      */
     public int importarLivros(File arquivo) throws IOException {
-        // Encontra a estratégia adequada para o arquivo
         ImportStrategy estrategia = encontrarEstrategia(arquivo);
         if (estrategia == null) {
             throw new IllegalArgumentException("Formato de arquivo não suportado: " + arquivo.getName());
         }
-
-        // Importa os livros usando a estratégia selecionada
         List<Livro> livrosImportados = estrategia.importar(arquivo);
 
-        // Salva os livros no banco de dados
         return salvarLivrosImportados(livrosImportados);
     }
 
@@ -86,16 +82,13 @@ public class ImportService {
 
         for (Livro livro : livros) {
             try {
-                // Ignora livros sem ISBN
                 if (livro.getIsbn() == null || livro.getIsbn().isEmpty()) {
                     continue;
                 }
 
-                // Verifica se o livro já existe
                 Optional<Livro> livroExistente = livroRepository.findByIsbn(livro.getIsbn());
 
                 if (livroExistente.isPresent()) {
-                    // Atualiza o livro existente
                     Livro existente = livroExistente.get();
 
                     // Atualiza os campos se fornecidos na importação

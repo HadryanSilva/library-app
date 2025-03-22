@@ -101,6 +101,9 @@ public class ImportacaoPainel extends JPanel {
         infoPanel.add(new JLabel("- XML (eXtensible Markup Language)"), gbc);
 
         gbc.gridy = 3;
+        infoPanel.add(new JLabel("- TXT (Fixed Width Text)"), gbc);
+
+        gbc.gridy = 4;
         infoPanel.add(new JLabel("Observação: Durante a importação, livros existentes serão atualizados."), gbc);
 
         // Painel superior

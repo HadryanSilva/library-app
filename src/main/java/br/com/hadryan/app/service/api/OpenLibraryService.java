@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,6 +23,7 @@ public class OpenLibraryService {
 
     private static final Logger LOGGER = Logger.getLogger(OpenLibraryService.class.getName());
     private static final String API_URL = "https://openlibrary.org/isbn/";
+    private static final String API_BASE_URL = "https://openlibrary.org";
     private static final String API_FORMAT = ".json";
 
     private final ObjectMapper objectMapper;
@@ -44,10 +43,7 @@ public class OpenLibraryService {
      */
     public Optional<Livro> buscarLivroPorIsbn(String isbn) {
         try {
-            // Normaliza o ISBN
             isbn = isbn.replaceAll("[^0-9X]", "");
-
-            // Faz a requisição à API
             String jsonResponse = fazerRequisicaoGet(API_URL + isbn + API_FORMAT);
 
             if (jsonResponse == null || jsonResponse.isEmpty()) {
@@ -127,9 +123,7 @@ public class OpenLibraryService {
             livro.setTitulo(rootNode.get("title").asText());
         }
 
-        // Data de Publicação
         if (rootNode.has("publish_date")) {
-            // Obtém a data diretamente como string, sem conversão
             String dataPublicacaoStr = rootNode.get("publish_date").asText();
             livro.setDataPublicacao(dataPublicacaoStr);
         }
@@ -143,13 +137,12 @@ public class OpenLibraryService {
             }
         }
 
-        // Autores
         if (rootNode.has("authors") && rootNode.get("authors").isArray()) {
             JsonNode authors = rootNode.get("authors");
             for (JsonNode authorNode : authors) {
-                if (authorNode.has("name")) {
-                    String nomeAutor = authorNode.get("name").asText();
-                    livro.adicionarAutor(new Autor(nomeAutor));
+                if (authorNode.has("key")) {
+                    String authorKey = authorNode.get("key").asText();
+                    buscarDetalheAutor(authorKey).ifPresent(livro::adicionarAutor);
                 }
             }
         }
@@ -158,17 +151,31 @@ public class OpenLibraryService {
     }
 
     /**
-     * Tenta fazer o parse de uma string de data para LocalDate
-     * considerando vários formatos possíveis
+     * Busca informações detalhadas de um autor pelo ID/key
+     *
+     * @param authorKey Chave do autor (/authors/OLXXXXA)
+     * @return Optional com o autor, se encontrado
      */
-    private LocalDate parseData(String dataStr) {
-        // Tenta alguns formatos comuns
+    private Optional<Autor> buscarDetalheAutor(String authorKey) {
         try {
-            return LocalDate.parse(dataStr);
-        } catch (DateTimeParseException e) {
-            // Implementar mais formatos se necessário
-            LOGGER.warning("Não foi possível converter a data: " + dataStr);
-            return null;
+            // Faz a requisição para a API de autores
+            String jsonResponse = fazerRequisicaoGet(API_BASE_URL + authorKey + ".json");
+
+            if (jsonResponse == null || jsonResponse.isEmpty()) {
+                return Optional.empty();
+            }
+
+            JsonNode authorNode = objectMapper.readTree(jsonResponse);
+
+            if (authorNode.has("name")) {
+                String nomeAutor = authorNode.get("name").asText();
+                return Optional.of(new Autor(nomeAutor));
+            }
+
+            return Optional.empty();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao buscar detalhes do autor: " + authorKey, e);
+            return Optional.empty();
         }
     }
 }
