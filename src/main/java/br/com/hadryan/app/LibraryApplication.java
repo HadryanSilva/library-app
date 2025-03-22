@@ -1,10 +1,11 @@
 package br.com.hadryan.app;
 
-import br.com.hadryan.app.model.repository.RepositoryFactory;
-import br.com.hadryan.app.service.ServiceFactory;
-import br.com.hadryan.app.util.JPAUtil;
-import br.com.hadryan.app.util.MessageUtil;
-import br.com.hadryan.app.util.UIUtil;
+import br.com.hadryan.app.config.JpaConfig;
+import br.com.hadryan.app.controller.LivroController;
+import br.com.hadryan.app.model.repository.LivroRepository;
+import br.com.hadryan.app.service.LivroService;
+import br.com.hadryan.app.service.api.OpenLibraryService;
+import br.com.hadryan.app.service.importacao.ImportService;
 import br.com.hadryan.app.view.MainFrame;
 
 import javax.swing.*;
@@ -13,76 +14,73 @@ import java.util.logging.Logger;
 
 /**
  * Classe principal da aplicação.
- * Responsável por inicializar os recursos e abrir a janela principal.
- *
- * @author Hadryan Silva
- * @since 21-03-2025
+ * Responsável pela inicialização dos componentes e lançamento da interface gráfica.
  */
 public class LibraryApplication {
 
     private static final Logger LOGGER = Logger.getLogger(LibraryApplication.class.getName());
 
     /**
-     * Ponto de entrada da aplicação
-     *
-     * @param args Argumentos de linha de comando
+     * Método principal - ponto de entrada da aplicação
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Configura a aparência da aplicação
-                UIUtil.setupLookAndFeel();
+                // Configura o Look and Feel para uma aparência nativa
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
                 // Inicializa o banco de dados
-                initializeDatabase();
+                inicializarBancoDados();
 
-                // Cria e exibe a janela principal
-                MainFrame mainFrame = new MainFrame();
+                // Inicializa os serviços e repositórios
+                LivroRepository livroRepository = new LivroRepository();
+                OpenLibraryService openLibraryService = new OpenLibraryService();
+
+                // Cria e configura serviços
+                LivroService livroService = new LivroService(livroRepository, openLibraryService);
+                ImportService importService = new ImportService(livroRepository);
+
+                // Cria o controller
+                LivroController livroController = new LivroController(livroService);
+
+                // Cria e exibe a interface gráfica
+                MainFrame mainFrame = new MainFrame(livroController, importService);
                 mainFrame.setVisible(true);
 
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Erro ao iniciar a aplicação", e);
-
-                MessageUtil.showError(null,
+                JOptionPane.showMessageDialog(null,
                         "Erro ao iniciar a aplicação: " + e.getMessage(),
-                        "Erro de Inicialização");
+                        "Erro de Inicialização",
+                        JOptionPane.ERROR_MESSAGE);
 
-                // Fecha recursos
-                cleanupResources();
-
+                // Libera recursos e encerra a aplicação
+                liberarRecursos();
                 System.exit(1);
             }
         });
     }
 
     /**
-     * Inicializa a conexão com o banco de dados
-     *
-     * @throws Exception se a inicialização do banco de dados falhar
+     * Inicializa o banco de dados e verifica a conexão
      */
-    private static void initializeDatabase() throws Exception {
-        try {
-            // Testa a conexão com o banco de dados
-            JPAUtil.getEntityManager().close();
-            LOGGER.info("Conexão com o banco de dados estabelecida com sucesso.");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Falha ao inicializar o banco de dados", e);
-            throw new Exception("Falha ao inicializar o banco de dados: " + e.getMessage(), e);
+    private static void inicializarBancoDados() throws Exception {
+        JpaConfig jpaConfig = JpaConfig.getInstance();
+
+        if (!jpaConfig.testarConexao()) {
+            throw new Exception("Não foi possível conectar ao banco de dados.");
         }
+
+        LOGGER.info("Conexão com o banco de dados estabelecida com sucesso.");
     }
 
     /**
-     * Limpa recursos utilizados pela aplicação
+     * Libera recursos utilizados pela aplicação
      */
-    public static void cleanupResources() {
+    public static void liberarRecursos() {
         try {
-            // Fecha as factories
-            ServiceFactory.getInstance().closeAll();
-            RepositoryFactory.getInstance().closeAll();
-
-            // Fecha o EntityManagerFactory
-            JPAUtil.close();
-
+            // Fecha o EntityManagerFactory e recursos relacionados
+            JpaConfig.getInstance().close();
             LOGGER.info("Recursos liberados com sucesso.");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Erro ao liberar recursos", e);

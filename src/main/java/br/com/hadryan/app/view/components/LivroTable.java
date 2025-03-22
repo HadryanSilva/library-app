@@ -1,38 +1,35 @@
-package br.com.hadryan.app.view;
+package br.com.hadryan.app.view.components;
 
-import br.com.hadryan.app.model.entity.Author;
-import br.com.hadryan.app.model.entity.Book;
-import br.com.hadryan.app.util.DateUtil;
+import br.com.hadryan.app.model.entity.Autor;
+import br.com.hadryan.app.model.entity.Livro;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.List;
 
 /**
  * Componente reutilizável para tabelas de livros.
- *
- * @author Hadryan Silva
- * @since 21-03-2025
+ * Adaptado para tratar data de publicação como String.
  */
-public class BookTablePanel extends JPanel {
+public class LivroTable extends JPanel {
 
     private static final long serialVersionUID = 1L;
 
-    private JTable bookTable;
+    private JTable livroTable;
     private DefaultTableModel tableModel;
     private JScrollPane scrollPane;
 
-    private Consumer<Book> onDoubleClickAction;
+    private Consumer<Livro> onDoubleClickAction;
 
     /**
      * Construtor do componente de tabela de livros
      */
-    public BookTablePanel() {
+    public LivroTable() {
         initComponents();
         layoutComponents();
         setupListeners();
@@ -63,20 +60,20 @@ public class BookTablePanel extends JPanel {
         tableModel.addColumn("Data de Publicação");
 
         // Cria tabela
-        bookTable = new JTable(tableModel);
-        bookTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        bookTable.getTableHeader().setReorderingAllowed(false);
+        livroTable = new JTable(tableModel);
+        livroTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        livroTable.getTableHeader().setReorderingAllowed(false);
 
         // Configura a largura das colunas
-        bookTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
-        bookTable.getColumnModel().getColumn(1).setPreferredWidth(200); // Título
-        bookTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Autores
-        bookTable.getColumnModel().getColumn(3).setPreferredWidth(100); // ISBN
-        bookTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Editora
-        bookTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Data
+        livroTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        livroTable.getColumnModel().getColumn(1).setPreferredWidth(200); // Título
+        livroTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Autores
+        livroTable.getColumnModel().getColumn(3).setPreferredWidth(100); // ISBN
+        livroTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Editora
+        livroTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Data
 
         // ScrollPane para a tabela
-        scrollPane = new JScrollPane(bookTable);
+        scrollPane = new JScrollPane(livroTable);
     }
 
     /**
@@ -91,13 +88,13 @@ public class BookTablePanel extends JPanel {
      */
     private void setupListeners() {
         // Listener para duplo clique na tabela
-        bookTable.addMouseListener(new MouseAdapter() {
+        livroTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2 && bookTable.getSelectedRow() != -1 && onDoubleClickAction != null) {
-                    Book selectedBook = getSelectedBook();
-                    if (selectedBook != null) {
-                        onDoubleClickAction.accept(selectedBook);
+                if (e.getClickCount() == 2 && livroTable.getSelectedRow() != -1 && onDoubleClickAction != null) {
+                    Livro livroSelecionado = getLivroSelecionado();
+                    if (livroSelecionado != null) {
+                        onDoubleClickAction.accept(livroSelecionado);
                     }
                 }
             }
@@ -106,98 +103,86 @@ public class BookTablePanel extends JPanel {
 
     /**
      * Carrega os dados de livros na tabela
-     *
-     * @param books Lista de livros a serem exibidos
      */
-    public void loadData(List<Book> books) {
+    public void carregarDados(List<Livro> livros) {
         // Limpa dados existentes
         tableModel.setRowCount(0);
 
         // Adiciona livros à tabela
-        for (Book book : books) {
+        for (Livro livro : livros) {
             // Formata autores como string separada por vírgulas
-            String authors = book.getAuthors().stream()
-                    .map(Author::getName)
+            String autores = livro.getAutores().stream()
+                    .map(Autor::getNome)
                     .collect(Collectors.joining(", "));
 
-            // Formata data de publicação
-            String pubDate = DateUtil.format(book.getPublicationDate());
+            // Data de publicação como String diretamente
+            String dataPublicacao = livro.getDataPublicacao() != null
+                    ? livro.getDataPublicacao()
+                    : "";
 
             // Adiciona linha à tabela
             tableModel.addRow(new Object[]{
-                    book.getId(),
-                    book.getTitle(),
-                    authors,
-                    book.getIsbn(),
-                    book.getPublisher() != null ? book.getPublisher().getName() : "",
-                    pubDate
+                    livro.getId(),
+                    livro.getTitulo(),
+                    autores,
+                    livro.getIsbn(),
+                    livro.getEditora() != null ? livro.getEditora().getNome() : "",
+                    dataPublicacao
             });
         }
     }
 
     /**
      * Retorna o livro selecionado na tabela
-     *
-     * @return O livro selecionado, ou null se nenhum estiver selecionado
      */
-    public Book getSelectedBook() {
-        int selectedRow = bookTable.getSelectedRow();
+    public Livro getLivroSelecionado() {
+        int selectedRow = livroTable.getSelectedRow();
         if (selectedRow == -1) {
             return null;
         }
 
-        // Retorna um objeto Book com os dados básicos (apenas ID e ISBN)
+        // Retorna um objeto Livro com os dados básicos (apenas ID e ISBN)
         // Será necessário carregar o livro completo do repositório para ter todos os dados
-        Book book = new Book();
-        book.setId((Long) tableModel.getValueAt(selectedRow, 0));
-        book.setTitle((String) tableModel.getValueAt(selectedRow, 1));
-        book.setIsbn((String) tableModel.getValueAt(selectedRow, 3));
+        Livro livro = new Livro();
+        livro.setId((Long) tableModel.getValueAt(selectedRow, 0));
+        livro.setTitulo((String) tableModel.getValueAt(selectedRow, 1));
+        livro.setIsbn((String) tableModel.getValueAt(selectedRow, 3));
 
-        return book;
+        return livro;
     }
 
     /**
      * Retorna o índice da linha selecionada
-     *
-     * @return O índice da linha selecionada, ou -1 se nenhuma estiver selecionada
      */
     public int getSelectedRow() {
-        return bookTable.getSelectedRow();
+        return livroTable.getSelectedRow();
     }
 
     /**
      * Define a ação a ser executada quando houver duplo clique em um livro
-     *
-     * @param action Consumer que recebe o livro selecionado
      */
-    public void setOnDoubleClickAction(Consumer<Book> action) {
+    public void setOnDoubleClickAction(Consumer<Livro> action) {
         this.onDoubleClickAction = action;
     }
 
     /**
      * Define a seleção de linha na tabela
-     *
-     * @param row Índice da linha a ser selecionada
      */
     public void setSelectedRow(int row) {
-        if (row >= 0 && row < bookTable.getRowCount()) {
-            bookTable.setRowSelectionInterval(row, row);
+        if (row >= 0 && row < livroTable.getRowCount()) {
+            livroTable.setRowSelectionInterval(row, row);
         }
     }
 
     /**
      * Retorna a tabela de livros
-     *
-     * @return A tabela JTable
      */
     public JTable getTable() {
-        return bookTable;
+        return livroTable;
     }
 
     /**
      * Retorna o modelo da tabela
-     *
-     * @return O modelo DefaultTableModel
      */
     public DefaultTableModel getTableModel() {
         return tableModel;
@@ -205,12 +190,10 @@ public class BookTablePanel extends JPanel {
 
     /**
      * Define se a tabela está habilitada
-     *
-     * @param enabled true para habilitar, false para desabilitar
      */
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        bookTable.setEnabled(enabled);
+        livroTable.setEnabled(enabled);
     }
 }

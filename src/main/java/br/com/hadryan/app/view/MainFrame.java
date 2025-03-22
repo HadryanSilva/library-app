@@ -1,44 +1,51 @@
 package br.com.hadryan.app.view;
 
 import br.com.hadryan.app.LibraryApplication;
-import br.com.hadryan.app.util.MessageUtil;
-import br.com.hadryan.app.util.UIUtil;
+import br.com.hadryan.app.controller.LivroController;
+import br.com.hadryan.app.service.importacao.ImportService;
+import br.com.hadryan.app.view.components.ImportacaoPainel;
+import br.com.hadryan.app.view.components.LivroListaPainel;
+import br.com.hadryan.app.view.components.LivroPesquisaPainel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.logging.Logger;
 
 /**
  * Janela principal da aplicação.
  * Gerencia os painéis e controles da interface gráfica.
- *
- * @author Hadryan Silva
- * @since 21-03-2025
  */
 public class MainFrame extends JFrame {
 
     private static final long serialVersionUID = 1L;
+
     // Layout e painéis
     private JPanel contentPanel;
     private CardLayout cardLayout;
 
     // Referências aos painéis
-    private BookListPanel bookListPanel;
-    private BookSearchPanel bookSearchPanel;
-    private ImportPanel importPanel;
+    private LivroListaPainel livroListaPainel;
+    private LivroPesquisaPainel livroPesquisaPainel;
+    private ImportacaoPainel importacaoPainel;
 
-    // Componentes da UI
+    // Barra de ferramentas e botões
     private JToolBar toolBar;
-    private JButton listButton;
-    private JButton searchButton;
-    private JButton importButton;
+    private JButton listaButton;
+    private JButton pesquisaButton;
+    private JButton importacaoButton;
+
+    // Controladores e serviços
+    private final LivroController livroController;
+    private final ImportService importService;
 
     /**
      * Construtor da janela principal
      */
-    public MainFrame() {
+    public MainFrame(LivroController livroController, ImportService importService) {
+        this.livroController = livroController;
+        this.importService = importService;
+
         initComponents();
         setupLayout();
         setupToolbar();
@@ -46,27 +53,28 @@ public class MainFrame extends JFrame {
         setupWindowListeners();
 
         // Exibe o painel inicial
-        showPanel("LIST");
+        mostrarPainel("LISTA");
+
+        // Configura a janela
+        setTitle("Sistema de Gerenciamento de Biblioteca");
+        setSize(900, 600);
+        setMinimumSize(new Dimension(800, 500));
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setLocationRelativeTo(null);
     }
 
     /**
      * Inicializa os componentes da UI
      */
     private void initComponents() {
-        setTitle("Sistema de Gerenciamento de Biblioteca");
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(900, 600);
-        setMinimumSize(new Dimension(800, 500));
-        UIUtil.centerOnScreen(this);
-
         // Inicializa o layout de cartões para troca de painéis
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
         // Inicializa os painéis
-        bookListPanel = new BookListPanel(this);
-        bookSearchPanel = new BookSearchPanel(this);
-        importPanel = new ImportPanel(this);
+        livroListaPainel = new LivroListaPainel(this, livroController);
+        livroPesquisaPainel = new LivroPesquisaPainel(this, livroController);
+        importacaoPainel = new ImportacaoPainel(this, importService);
 
         // Inicializa a barra de ferramentas
         toolBar = new JToolBar();
@@ -74,9 +82,9 @@ public class MainFrame extends JFrame {
         toolBar.setRollover(true);
 
         // Botões da barra de ferramentas
-        listButton = new JButton("Lista de Livros");
-        searchButton = new JButton("Pesquisar");
-        importButton = new JButton("Importar");
+        listaButton = new JButton("Lista de Livros");
+        pesquisaButton = new JButton("Pesquisar");
+        importacaoButton = new JButton("Importar");
     }
 
     /**
@@ -84,9 +92,9 @@ public class MainFrame extends JFrame {
      */
     private void setupLayout() {
         // Adiciona painéis ao layout de cartões
-        contentPanel.add(bookListPanel, "LIST");
-        contentPanel.add(bookSearchPanel, "SEARCH");
-        contentPanel.add(importPanel, "IMPORT");
+        contentPanel.add(livroListaPainel, "LISTA");
+        contentPanel.add(livroPesquisaPainel, "PESQUISA");
+        contentPanel.add(importacaoPainel, "IMPORTACAO");
 
         // Adiciona o painel de conteúdo à janela
         getContentPane().setLayout(new BorderLayout());
@@ -99,21 +107,21 @@ public class MainFrame extends JFrame {
      */
     private void setupToolbar() {
         // Configura os botões
-        listButton.setToolTipText("Exibir lista de livros");
-        searchButton.setToolTipText("Pesquisar livros");
-        importButton.setToolTipText("Importar livros");
+        listaButton.setToolTipText("Exibir lista de livros");
+        pesquisaButton.setToolTipText("Pesquisar livros");
+        importacaoButton.setToolTipText("Importar livros");
 
         // Adiciona ações aos botões
-        listButton.addActionListener(e -> showPanel("LIST"));
-        searchButton.addActionListener(e -> showPanel("SEARCH"));
-        importButton.addActionListener(e -> showPanel("IMPORT"));
+        listaButton.addActionListener(e -> mostrarPainel("LISTA"));
+        pesquisaButton.addActionListener(e -> mostrarPainel("PESQUISA"));
+        importacaoButton.addActionListener(e -> mostrarPainel("IMPORTACAO"));
 
         // Adiciona botões à barra de ferramentas
-        toolBar.add(listButton);
+        toolBar.add(listaButton);
         toolBar.addSeparator();
-        toolBar.add(searchButton);
+        toolBar.add(pesquisaButton);
         toolBar.addSeparator();
-        toolBar.add(importButton);
+        toolBar.add(importacaoButton);
     }
 
     /**
@@ -126,7 +134,7 @@ public class MainFrame extends JFrame {
         JMenu fileMenu = new JMenu("Arquivo");
 
         JMenuItem exitItem = new JMenuItem("Sair");
-        exitItem.addActionListener(e -> exitApplication());
+        exitItem.addActionListener(e -> sair());
 
         fileMenu.add(exitItem);
 
@@ -134,13 +142,13 @@ public class MainFrame extends JFrame {
         JMenu booksMenu = new JMenu("Livros");
 
         JMenuItem listItem = new JMenuItem("Lista de Livros");
-        listItem.addActionListener(e -> showPanel("LIST"));
+        listItem.addActionListener(e -> mostrarPainel("LISTA"));
 
         JMenuItem searchItem = new JMenuItem("Pesquisar Livros");
-        searchItem.addActionListener(e -> showPanel("SEARCH"));
+        searchItem.addActionListener(e -> mostrarPainel("PESQUISA"));
 
         JMenuItem importItem = new JMenuItem("Importar Livros");
-        importItem.addActionListener(e -> showPanel("IMPORT"));
+        importItem.addActionListener(e -> mostrarPainel("IMPORTACAO"));
 
         booksMenu.add(listItem);
         booksMenu.add(searchItem);
@@ -151,7 +159,7 @@ public class MainFrame extends JFrame {
         JMenu helpMenu = new JMenu("Ajuda");
 
         JMenuItem aboutItem = new JMenuItem("Sobre");
-        aboutItem.addActionListener(e -> showAboutDialog());
+        aboutItem.addActionListener(e -> mostrarSobre());
 
         helpMenu.add(aboutItem);
 
@@ -170,58 +178,71 @@ public class MainFrame extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                exitApplication();
+                sair();
             }
         });
     }
 
     /**
      * Mostra um painel específico no layout de cartões
-     *
-     * @param panelName Nome do painel a ser mostrado
      */
-    public void showPanel(String panelName) {
+    public void mostrarPainel(String nomePainel) {
         // Atualiza dados se necessário
-        if (panelName.equals("LIST")) {
-            bookListPanel.refreshData();
+        if (nomePainel.equals("LISTA")) {
+            livroListaPainel.atualizarDados();
         }
 
         // Exibe o painel
-        cardLayout.show(contentPanel, panelName);
+        cardLayout.show(contentPanel, nomePainel);
 
         // Atualiza a barra de ferramentas para destacar o botão ativo
-        listButton.setEnabled(!panelName.equals("LIST"));
-        searchButton.setEnabled(!panelName.equals("SEARCH"));
-        importButton.setEnabled(!panelName.equals("IMPORT"));
+        listaButton.setEnabled(!nomePainel.equals("LISTA"));
+        pesquisaButton.setEnabled(!nomePainel.equals("PESQUISA"));
+        importacaoButton.setEnabled(!nomePainel.equals("IMPORTACAO"));
     }
 
     /**
      * Exibe o diálogo "Sobre"
      */
-    private void showAboutDialog() {
-        StringBuilder message = new StringBuilder();
-        message.append("Sistema de Gerenciamento de Biblioteca\n");
-        message.append("Versão 1.0\n\n");
-        message.append("Desenvolvido por Hadryan Silva\n");
-
-        MessageUtil.showInfo(this, message.toString(), "Sobre");
+    private void mostrarSobre() {
+        JOptionPane.showMessageDialog(this,
+                "Sistema de Gerenciamento de Biblioteca\n" +
+                        "Versão 1.0\n\n" +
+                        "Desenvolvido como parte do processo de avaliação",
+                "Sobre",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
      * Encerra a aplicação
      */
-    private void exitApplication() {
-        boolean confirm = MessageUtil.showConfirm(this,
+    private void sair() {
+        int opcao = JOptionPane.showConfirmDialog(this,
                 "Deseja realmente sair da aplicação?",
-                "Confirmação");
+                "Confirmação",
+                JOptionPane.YES_NO_OPTION);
 
-        if (confirm) {
-            // Fecha recursos
-            LibraryApplication.cleanupResources();
+        if (opcao == JOptionPane.YES_OPTION) {
+            // Libera recursos
+            LibraryApplication.liberarRecursos();
 
             // Encerra a aplicação
             dispose();
             System.exit(0);
         }
+    }
+
+    /**
+     * Atualiza a lista de livros
+     */
+    public void atualizarListaLivros() {
+        livroListaPainel.atualizarDados();
+    }
+
+    /**
+     * Retorna o controlador de livros
+     */
+    public LivroController getLivroController() {
+        return livroController;
     }
 }
