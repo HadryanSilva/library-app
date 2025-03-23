@@ -3,39 +3,37 @@ package br.com.hadryan.app.view;
 import br.com.hadryan.app.LibraryApplication;
 import br.com.hadryan.app.controller.LivroController;
 import br.com.hadryan.app.service.importacao.ImportService;
-import br.com.hadryan.app.view.components.ImportacaoPainel;
-import br.com.hadryan.app.view.components.LivroListaPainel;
-import br.com.hadryan.app.view.components.LivroPesquisaPainel;
+import br.com.hadryan.app.view.components.panel.ImportacaoPanel;
+import br.com.hadryan.app.view.components.panel.LivroListaPanel;
+import br.com.hadryan.app.view.components.panel.LivroPesquisaPanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Janela principal da aplicação.
  * Gerencia os painéis e controles da interface gráfica.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 public class MainFrame extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
-    // Layout e painéis
+    public static final String PAINEL_LISTA = "LISTA";
+    public static final String PAINEL_PESQUISA = "PESQUISA";
+    public static final String PAINEL_IMPORTACAO = "IMPORTACAO";
+
     private JPanel contentPanel;
     private CardLayout cardLayout;
+    private final Map<String, JPanel> paineis = new HashMap<>();
+    private final Map<String, JButton> botoesNavegacao = new HashMap<>();
 
-    // Referências aos painéis
-    private LivroListaPainel livroListaPainel;
-    private LivroPesquisaPainel livroPesquisaPainel;
-    private ImportacaoPainel importacaoPainel;
-
-    // Barra de ferramentas e botões
-    private JToolBar toolBar;
-    private JButton listaButton;
-    private JButton pesquisaButton;
-    private JButton importacaoButton;
-
-    // Controladores e serviços
     private final LivroController livroController;
     private final ImportService importService;
 
@@ -52,10 +50,8 @@ public class MainFrame extends JFrame {
         setupMenu();
         setupWindowListeners();
 
-        // Exibe o painel inicial
-        mostrarPainel("LISTA");
+        mostrarPainel(PAINEL_LISTA);
 
-        // Configura a janela
         setTitle("Sistema de Gerenciamento de Biblioteca");
         setSize(900, 600);
         setMinimumSize(new Dimension(800, 500));
@@ -67,38 +63,23 @@ public class MainFrame extends JFrame {
      * Inicializa os componentes da UI
      */
     private void initComponents() {
-        // Inicializa o layout de cartões para troca de painéis
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
-        // Inicializa os painéis
-        livroListaPainel = new LivroListaPainel(this, livroController);
-        livroPesquisaPainel = new LivroPesquisaPainel(this, livroController);
-        importacaoPainel = new ImportacaoPainel(this, importService);
-
-        // Inicializa a barra de ferramentas
-        toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-        toolBar.setRollover(true);
-
-        // Botões da barra de ferramentas
-        listaButton = new JButton("Lista de Livros");
-        pesquisaButton = new JButton("Pesquisar");
-        importacaoButton = new JButton("Importar");
+        paineis.put(PAINEL_LISTA, new LivroListaPanel(this, livroController));
+        paineis.put(PAINEL_PESQUISA, new LivroPesquisaPanel(this, livroController));
+        paineis.put(PAINEL_IMPORTACAO, new ImportacaoPanel(this, importService));
     }
 
     /**
      * Configura o layout da janela
      */
     private void setupLayout() {
-        // Adiciona painéis ao layout de cartões
-        contentPanel.add(livroListaPainel, "LISTA");
-        contentPanel.add(livroPesquisaPainel, "PESQUISA");
-        contentPanel.add(importacaoPainel, "IMPORTACAO");
+        for (Map.Entry<String, JPanel> entry : paineis.entrySet()) {
+            contentPanel.add(entry.getValue(), entry.getKey());
+        }
 
-        // Adiciona o painel de conteúdo à janela
         getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(toolBar, BorderLayout.NORTH);
         getContentPane().add(contentPanel, BorderLayout.CENTER);
     }
 
@@ -106,22 +87,32 @@ public class MainFrame extends JFrame {
      * Configura a barra de ferramentas
      */
     private void setupToolbar() {
-        // Configura os botões
-        listaButton.setToolTipText("Exibir lista de livros");
-        pesquisaButton.setToolTipText("Pesquisar livros");
-        importacaoButton.setToolTipText("Importar livros");
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setRollover(true);
 
-        // Adiciona ações aos botões
-        listaButton.addActionListener(e -> mostrarPainel("LISTA"));
-        pesquisaButton.addActionListener(e -> mostrarPainel("PESQUISA"));
-        importacaoButton.addActionListener(e -> mostrarPainel("IMPORTACAO"));
+        JButton listaButton = createToolbarButton("Lista de Livros", PAINEL_LISTA);
+        JButton pesquisaButton = createToolbarButton("Pesquisar", PAINEL_PESQUISA);
+        JButton importacaoButton = createToolbarButton("Importar", PAINEL_IMPORTACAO);
 
-        // Adiciona botões à barra de ferramentas
         toolBar.add(listaButton);
         toolBar.addSeparator();
         toolBar.add(pesquisaButton);
         toolBar.addSeparator();
         toolBar.add(importacaoButton);
+
+        getContentPane().add(toolBar, BorderLayout.NORTH);
+    }
+
+    /**
+     * Cria um botão para a barra de ferramentas
+     */
+    private JButton createToolbarButton(String text, String painelId) {
+        JButton button = new JButton(text);
+        button.setToolTipText("Exibir " + text.toLowerCase());
+        button.addActionListener(e -> mostrarPainel(painelId));
+        botoesNavegacao.put(painelId, button);
+        return button;
     }
 
     /**
@@ -130,40 +121,32 @@ public class MainFrame extends JFrame {
     private void setupMenu() {
         JMenuBar menuBar = new JMenuBar();
 
-        // Menu Arquivo
         JMenu fileMenu = new JMenu("Arquivo");
-
         JMenuItem exitItem = new JMenuItem("Sair");
         exitItem.addActionListener(e -> sair());
-
         fileMenu.add(exitItem);
 
-        // Menu Livros
         JMenu booksMenu = new JMenu("Livros");
 
         JMenuItem listItem = new JMenuItem("Lista de Livros");
-        listItem.addActionListener(e -> mostrarPainel("LISTA"));
+        listItem.addActionListener(e -> mostrarPainel(PAINEL_LISTA));
 
         JMenuItem searchItem = new JMenuItem("Pesquisar Livros");
-        searchItem.addActionListener(e -> mostrarPainel("PESQUISA"));
+        searchItem.addActionListener(e -> mostrarPainel(PAINEL_PESQUISA));
 
         JMenuItem importItem = new JMenuItem("Importar Livros");
-        importItem.addActionListener(e -> mostrarPainel("IMPORTACAO"));
+        importItem.addActionListener(e -> mostrarPainel(PAINEL_IMPORTACAO));
 
         booksMenu.add(listItem);
         booksMenu.add(searchItem);
         booksMenu.addSeparator();
         booksMenu.add(importItem);
 
-        // Menu Ajuda
         JMenu helpMenu = new JMenu("Ajuda");
-
         JMenuItem aboutItem = new JMenuItem("Sobre");
         aboutItem.addActionListener(e -> mostrarSobre());
-
         helpMenu.add(aboutItem);
 
-        // Adiciona menus à barra de menu
         menuBar.add(fileMenu);
         menuBar.add(booksMenu);
         menuBar.add(helpMenu);
@@ -187,18 +170,15 @@ public class MainFrame extends JFrame {
      * Mostra um painel específico no layout de cartões
      */
     public void mostrarPainel(String nomePainel) {
-        // Atualiza dados se necessário
-        if (nomePainel.equals("LISTA")) {
-            livroListaPainel.atualizarDados();
+        if (nomePainel.equals(PAINEL_LISTA)) {
+            ((LivroListaPanel) paineis.get(PAINEL_LISTA)).updateData();
         }
 
-        // Exibe o painel
         cardLayout.show(contentPanel, nomePainel);
 
-        // Atualiza a barra de ferramentas para destacar o botão ativo
-        listaButton.setEnabled(!nomePainel.equals("LISTA"));
-        pesquisaButton.setEnabled(!nomePainel.equals("PESQUISA"));
-        importacaoButton.setEnabled(!nomePainel.equals("IMPORTACAO"));
+        for (Map.Entry<String, JButton> entry : botoesNavegacao.entrySet()) {
+            entry.getValue().setEnabled(!entry.getKey().equals(nomePainel));
+        }
     }
 
     /**
@@ -223,10 +203,7 @@ public class MainFrame extends JFrame {
                 JOptionPane.YES_NO_OPTION);
 
         if (opcao == JOptionPane.YES_OPTION) {
-            // Libera recursos
             LibraryApplication.liberarRecursos();
-
-            // Encerra a aplicação
             dispose();
             System.exit(0);
         }
@@ -236,7 +213,7 @@ public class MainFrame extends JFrame {
      * Atualiza a lista de livros
      */
     public void atualizarListaLivros() {
-        livroListaPainel.atualizarDados();
+        ((LivroListaPanel) paineis.get(PAINEL_LISTA)).updateData();
     }
 
     /**
