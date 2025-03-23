@@ -1,8 +1,6 @@
 package br.com.hadryan.app.service.json;
 
 import br.com.hadryan.app.model.entity.Autor;
-import br.com.hadryan.app.model.entity.Editora;
-import br.com.hadryan.app.model.entity.Livro;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,13 +32,6 @@ public class OpenLibraryJsonParser {
     }
 
     /**
-     * Construtor que permite injeção do ObjectMapper
-     */
-    public OpenLibraryJsonParser(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    /**
      * Converte uma string JSON para um JsonNode
      */
     public Optional<JsonNode> parseJsonToNode(String json) {
@@ -54,32 +45,6 @@ public class OpenLibraryJsonParser {
             LOGGER.log(Level.SEVERE, "Erro ao fazer parsing do JSON", e);
             return Optional.empty();
         }
-    }
-
-    /**
-     * Converte um JsonNode para um objeto Livro
-     */
-    public Livro converterNodeParaLivro(JsonNode rootNode, String isbn) {
-        Livro livro = new Livro();
-        livro.setIsbn(isbn);
-
-        if (rootNode.has(JSON_FIELD_TITLE)) {
-            livro.setTitulo(rootNode.get(JSON_FIELD_TITLE).asText());
-        }
-
-        if (rootNode.has(JSON_FIELD_PUBLISH_DATE)) {
-            livro.setDataPublicacao(rootNode.get(JSON_FIELD_PUBLISH_DATE).asText());
-        }
-
-        if (rootNode.has(JSON_FIELD_PUBLISHERS) && rootNode.get(JSON_FIELD_PUBLISHERS).isArray()) {
-            JsonNode publishers = rootNode.get(JSON_FIELD_PUBLISHERS);
-            if (!publishers.isEmpty()) {
-                String nomeEditora = publishers.get(0).asText();
-                livro.setEditora(new Editora(nomeEditora));
-            }
-        }
-
-        return livro;
     }
 
     /**

@@ -36,6 +36,7 @@ public class OpenLibraryService {
     public OpenLibraryService() {
         this.httpClient = new HttpClientWrapper();
         this.httpClient.setUseCache(true);
+        this.httpClient.setTimeouts(6000, 6000);
         this.jsonParser = new OpenLibraryJsonParser();
     }
 
@@ -103,7 +104,6 @@ public class OpenLibraryService {
             }
         } else {
             JsonNode works = jsonParser.getArrayNodeOrEmpty(rootNode, OpenLibraryJsonParser.JSON_FIELD_WORKS);
-
             for (JsonNode workNode : works) {
                 if (workNode.has(OpenLibraryJsonParser.JSON_FIELD_KEY)) {
                     String workKey = workNode.get(OpenLibraryJsonParser.JSON_FIELD_KEY).asText();
@@ -140,7 +140,6 @@ public class OpenLibraryService {
 
         try {
             String jsonResponse = httpClient.fazerRequisicaoGet(API_BASE_URL + workKey + API_FORMAT);
-
             Optional<JsonNode> optWorkNode = jsonParser.parseJsonToNode(jsonResponse);
             if (optWorkNode.isPresent()) {
                 JsonNode workNode = optWorkNode.get();

@@ -95,9 +95,9 @@ public class LivroController {
     /**
      * Atualiza os livros similares de um livro
      */
-    public Livro atualizarLivrosSimilares(Livro livro, List<String> listaIsbn) {
+    public void atualizarLivrosSimilares(Livro livro, List<String> listaIsbn) {
         try {
-            return livroService.atualizarLivrosSimilares(livro, listaIsbn);
+            livroService.atualizarLivrosSimilares(livro, listaIsbn);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Erro ao atualizar livros similares", e);
             throw new RuntimeException("Erro ao atualizar livros similares: " + e.getMessage(), e);
