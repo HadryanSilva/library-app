@@ -2,7 +2,6 @@ package br.com.hadryan.app.service;
 
 import br.com.hadryan.app.model.entity.Livro;
 import br.com.hadryan.app.model.repository.LivroRepository;
-import br.com.hadryan.app.service.api.OpenLibraryService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +11,9 @@ import java.util.logging.Logger;
 
 /**
  * Serviço responsável pela lógica de negócio relacionada a livros.
- * Implementa o padrão Service Layer.
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class LivroService {
 
@@ -85,13 +86,10 @@ public class LivroService {
      * Busca informações do livro pelo ISBN na API do OpenLibrary
      */
     public Optional<Livro> buscarLivroPorIsbnApi(String isbn) {
-        // Primeiro verifica se o livro já existe no banco de dados
         Optional<Livro> livroExistente = livroRepository.findByIsbn(isbn);
         if (livroExistente.isPresent()) {
             return livroExistente;
         }
-
-        // Se não encontrado, busca na API
         return openLibraryService.buscarLivroPorIsbn(isbn);
     }
 
@@ -102,26 +100,17 @@ public class LivroService {
         if (livro == null || livro.getId() == null) {
             throw new IllegalArgumentException("Livro precisa estar salvo para atualizar livros similares");
         }
-
         try {
-            // Limpa os livros similares existentes
             livro.getLivrosSimilares().clear();
-
-            // Adiciona os novos livros similares
             for (String isbn : isbns) {
                 if (isbn == null || isbn.trim().isEmpty()) {
                     continue;
                 }
-
-                // Não adiciona o próprio livro como similar
                 if (isbn.equals(livro.getIsbn())) {
                     continue;
                 }
-
                 livroRepository.findByIsbn(isbn.trim()).ifPresent(livro::adicionarLivroSimilar);
             }
-
-            // Salva o livro atualizado
             return livroRepository.save(livro);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Erro ao atualizar livros similares", e);
@@ -139,28 +128,20 @@ public class LivroService {
 
         List<Livro> sugestoes = new ArrayList<>();
 
-        // Se não houver autores, não há como sugerir similares
         if (livro.getAutores() == null || livro.getAutores().isEmpty()) {
             return sugestoes;
         }
-
-        // Busca livros com autores em comum
         List<Livro> todosLivros = livroRepository.findAll();
-
         for (Livro candidato : todosLivros) {
-            // Pula o próprio livro
             if (candidato.getId().equals(livro.getId())) {
                 continue;
             }
 
-            // Verifica se há autores em comum
             boolean temAutorEmComum = livro.getAutores().stream()
                     .anyMatch(autor -> candidato.getAutores().contains(autor));
 
             if (temAutorEmComum) {
                 sugestoes.add(candidato);
-
-                // Limita o número de resultados
                 if (sugestoes.size() >= maxResultados) {
                     break;
                 }

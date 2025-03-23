@@ -15,6 +15,9 @@ import java.util.logging.Logger;
 /**
  * Serviço para importação de livros a partir de arquivos.
  * Implementa o padrão Strategy para suportar diferentes formatos de arquivo.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class ImportService {
 
@@ -22,14 +25,6 @@ public class ImportService {
 
     private final List<ImportStrategy> estrategias;
     private final LivroRepository livroRepository;
-
-    /**
-     * Construtor que recebe o repositório e as estratégias disponíveis
-     */
-    public ImportService(LivroRepository livroRepository, List<ImportStrategy> estrategias) {
-        this.livroRepository = livroRepository;
-        this.estrategias = estrategias;
-    }
 
     /**
      * Construtor que inicializa estratégias padrão
@@ -91,7 +86,6 @@ public class ImportService {
                 if (livroExistente.isPresent()) {
                     Livro existente = livroExistente.get();
 
-                    // Atualiza os campos se fornecidos na importação
                     if (livro.getTitulo() != null && !livro.getTitulo().isEmpty()) {
                         existente.setTitulo(livro.getTitulo());
                     }
@@ -104,7 +98,6 @@ public class ImportService {
                         existente.setEditora(livro.getEditora());
                     }
 
-                    // Adiciona novos autores
                     if (livro.getAutores() != null) {
                         for (Autor autor : livro.getAutores()) {
                             existente.adicionarAutor(autor);
@@ -113,7 +106,6 @@ public class ImportService {
 
                     livroRepository.save(existente);
                 } else {
-                    // Salva um novo livro
                     livroRepository.save(livro);
                 }
 

@@ -4,7 +4,7 @@ import br.com.hadryan.app.config.JpaConfig;
 import br.com.hadryan.app.controller.LivroController;
 import br.com.hadryan.app.model.repository.LivroRepository;
 import br.com.hadryan.app.service.LivroService;
-import br.com.hadryan.app.service.api.OpenLibraryService;
+import br.com.hadryan.app.service.OpenLibraryService;
 import br.com.hadryan.app.service.importacao.ImportService;
 import br.com.hadryan.app.view.MainFrame;
 

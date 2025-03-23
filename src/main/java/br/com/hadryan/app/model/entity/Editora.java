@@ -8,6 +8,9 @@ import java.util.Set;
 
 /**
  * Entidade que representa uma editora no sistema.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 @Entity
 @Table(name = "editora")

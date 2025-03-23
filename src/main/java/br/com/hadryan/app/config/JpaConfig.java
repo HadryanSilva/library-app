@@ -10,7 +10,8 @@ import java.util.logging.Logger;
  * Classe responsável por gerenciar a configuração JPA e fornecer acesso centralizado
  * aos EntityManagers. Implementa o padrão Singleton.
  *
- * @author Biblioteca App
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 public class JpaConfig {
 
@@ -52,7 +53,6 @@ public class JpaConfig {
     public EntityManager getEntityManager() {
         EntityManager em = threadLocalEntityManager.get();
 
-        // Cria um novo EntityManager se não existir ou se o atual estiver fechado
         if (em == null || !em.isOpen()) {
             em = entityManagerFactory.createEntityManager();
             threadLocalEntityManager.set(em);
@@ -69,7 +69,6 @@ public class JpaConfig {
         if (em != null && em.isOpen()) {
             try {
                 if (em.getTransaction().isActive()) {
-                    // Faz rollback se uma transação estiver ativa
                     em.getTransaction().rollback();
                     LOGGER.warning("Transação ativa encontrada ao fechar EntityManager. Realizando rollback.");
                 }

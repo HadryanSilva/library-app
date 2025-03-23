@@ -11,6 +11,9 @@ import java.util.logging.Logger;
 /**
  * Controller para operações relacionadas a livros.
  * Implementa o padrão MVC, sendo o intermediário entre a View e o Service.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 public class LivroController {
 

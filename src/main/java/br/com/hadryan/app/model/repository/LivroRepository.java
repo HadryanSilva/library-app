@@ -14,7 +14,9 @@ import java.util.logging.Logger;
 
 /**
  * Repositório para operações de CRUD de Livros.
- * Atualizado para tratar data de publicação como String.
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class LivroRepository implements Repository<Livro, Long> {
 
@@ -53,7 +55,6 @@ public class LivroRepository implements Repository<Livro, Long> {
 
             List<Predicate> predicates = new ArrayList<>();
 
-            // Filtro por título
             if (filtro.getTitulo() != null && !filtro.getTitulo().isEmpty()) {
                 predicates.add(cb.like(
                         cb.lower(root.get("titulo")),
@@ -61,7 +62,6 @@ public class LivroRepository implements Repository<Livro, Long> {
                 ));
             }
 
-            // Filtro por ISBN
             if (filtro.getIsbn() != null && !filtro.getIsbn().isEmpty()) {
                 predicates.add(cb.like(
                         root.get("isbn"),
@@ -69,7 +69,6 @@ public class LivroRepository implements Repository<Livro, Long> {
                 ));
             }
 
-            // Filtro por data de publicação (como String)
             if (filtro.getDataPublicacao() != null && !filtro.getDataPublicacao().isEmpty()) {
                 predicates.add(cb.like(
                         cb.lower(root.get("dataPublicacao")),
@@ -77,7 +76,6 @@ public class LivroRepository implements Repository<Livro, Long> {
                 ));
             }
 
-            // Filtro por autor
             if (filtro.getAutores() != null && !filtro.getAutores().isEmpty()) {
                 String nomeAutor = filtro.getAutores().iterator().next().getNome().toLowerCase();
                 Join<Livro, Autor> autorJoin = root.join("autores");
@@ -87,7 +85,6 @@ public class LivroRepository implements Repository<Livro, Long> {
                 ));
             }
 
-            // Filtro por editora
             if (filtro.getEditora() != null && filtro.getEditora().getNome() != null) {
                 predicates.add(cb.like(
                         cb.lower(root.get("editora").get("nome")),
@@ -95,7 +92,6 @@ public class LivroRepository implements Repository<Livro, Long> {
                 ));
             }
 
-            // Adiciona predicados à consulta
             if (!predicates.isEmpty()) {
                 cq.where(cb.and(predicates.toArray(new Predicate[0])));
             }
