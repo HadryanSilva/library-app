@@ -110,4 +110,16 @@ public class LivroController {
     public List<Livro> sugerirLivrosSimilares(Livro livro, int maxResultados) {
         return livroService.sugerirLivrosSimilares(livro, maxResultados);
     }
+
+    /**
+     * Busca livros relacionados por subjects via API
+     */
+    public List<Livro> buscarLivrosRelacionadosPorSubjects(String isbn, int maxResultados) {
+        try {
+            return livroService.buscarLivrosRelacionadosPorSubjects(isbn, maxResultados);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao buscar livros relacionados por subjects: " + isbn, e);
+            throw new RuntimeException("Erro na consulta de livros relacionados: " + e.getMessage(), e);
+        }
+    }
 }

@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +36,8 @@ public class LivroFormDialog extends BaseDialog {
     private FormPanel formPanel;
     private LivrosSimilaresSelector livrosSimilaresSelector;
     private JButton buscarButton;
+    private JLabel statusLabel;
+    private JProgressBar progressBar;
 
     /**
      * Construtor do diálogo de formulário de livro
@@ -50,8 +53,9 @@ public class LivroFormDialog extends BaseDialog {
         setupListeners();
         preencherCampos();
 
-        pack();
-        setMinimumSize(new Dimension(550, 450));
+        // Aumentando o tamanho do diálogo
+        setSize(800, 700);
+        setMinimumSize(new Dimension(700, 600));
         setLocationRelativeTo(parent);
     }
 
@@ -59,32 +63,81 @@ public class LivroFormDialog extends BaseDialog {
      * Inicializa os componentes do formulário
      */
     private void initComponents() {
+        // Vamos usar um layout diferente para o conteúdo principal
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        // Inicializa o FormPanel com um layout que preenche melhor o espaço
         formPanel = new FormPanel();
+        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
+        // Campo ISBN com botão de busca
         buscarButton = new JButton("Buscar por ISBN");
+        JPanel isbnPanel = new JPanel(new BorderLayout(5, 0));
+        JTextField isbnField = new JTextField(20);
+        isbnPanel.add(isbnField, BorderLayout.CENTER);
+        isbnPanel.add(buscarButton, BorderLayout.EAST);
+        formPanel.addFieldWithComponent("ISBN:", isbnField, FIELD_ISBN, buscarButton);
 
-        formPanel.addFieldWithComponent("ISBN:",
-                new JTextField(20), FIELD_ISBN, buscarButton);
+        // Campos de texto com fontes maiores
+        JTextField tituloField = new JTextField(40);
+        tituloField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        formPanel.addField("Título:", tituloField, FIELD_TITULO);
 
-        formPanel.addField("Título:",
-                new JTextField(30), FIELD_TITULO);
+        JTextArea autoresArea = new JTextArea(3, 40);
+        autoresArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        autoresArea.setLineWrap(true);
+        autoresArea.setWrapStyleWord(true);
+        formPanel.addTextArea("Autores:", FIELD_AUTORES, 3, 40);
 
-        formPanel.addTextArea("Autores:", FIELD_AUTORES, 3, 30);
+        JTextField editoraField = new JTextField(40);
+        editoraField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        formPanel.addField("Editora:", editoraField, FIELD_EDITORA);
 
-        formPanel.addField("Editora:",
-                new JTextField(30), FIELD_EDITORA);
+        JTextField dataField = new JTextField(15);
+        dataField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        JLabel formatoLabel = new JLabel("(Qualquer formato)");
+        formPanel.addFieldWithComponent("Data de Publicação:", dataField, FIELD_DATA_PUBLICACAO, formatoLabel);
 
-        JTextField dataField = formPanel.addFieldWithComponent("Data de Publicação:",
-                new JTextField(10), FIELD_DATA_PUBLICACAO,
-                new JLabel("(Qualquer formato)"));
+        JLabel similaresLabel = new JLabel("Livros Similares:");
+        similaresLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
+        formPanel.addFullWidthComponent(similaresLabel, null);
 
-        formPanel.addFullWidthComponent(new JLabel("Livros Similares:"), null);
+        // Painel para livros similares com indicador de progresso
+        JPanel similaresPanel = new JPanel(new BorderLayout());
 
+        // Componente seletor de livros similares
         livrosSimilaresSelector = new LivrosSimilaresSelector(this, livroController);
-        formPanel.addFullWidthComponent(livrosSimilaresSelector, FIELD_SIMILARES);
 
-        setMainComponent(formPanel);
+        // Painel de status
+        JPanel statusPanel = new JPanel(new BorderLayout(5, 0));
+        statusPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
+        // Progress bar
+        progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setVisible(false);
+
+        // Status label
+        statusLabel = new JLabel("");
+        statusLabel.setForeground(Color.BLUE);
+
+        statusPanel.add(statusLabel, BorderLayout.CENTER);
+        statusPanel.add(progressBar, BorderLayout.EAST);
+
+        // Adiciona componentes ao painel de similares
+        similaresPanel.add(livrosSimilaresSelector, BorderLayout.CENTER);
+        similaresPanel.add(statusPanel, BorderLayout.SOUTH);
+
+        // Adiciona o componente ao formulário com peso para que ocupe o espaço restante
+        formPanel.addFullWidthComponent(similaresPanel, FIELD_SIMILARES);
+
+        // Adiciona o formulário ao painel principal, expandindo em todas as direções
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Define o painel principal como componente principal
+        setMainComponent(mainPanel);
+
+        // Adiciona os botões no painel inferior
         addButton(isModoEdicao ? "Atualizar" : "Salvar", e -> salvarLivro());
         addButton("Cancelar", e -> cancel());
     }
@@ -171,7 +224,7 @@ public class LivroFormDialog extends BaseDialog {
     }
 
     /**
-     * Busca informações do livro pelo ISBN
+     * Busca informações do livro pelo ISBN e automaticamente busca livros relacionados
      */
     private void buscarPorIsbn() {
         String isbn = formPanel.getTextFieldValue(FIELD_ISBN).trim();
@@ -180,14 +233,37 @@ public class LivroFormDialog extends BaseDialog {
             return;
         }
 
+        // Desabilita o botão de busca
         buscarButton.setEnabled(false);
         buscarButton.setText("Buscando...");
 
-        new SwingWorker<Livro, Void>() {
+        // Mostra indicador de progresso
+        progressBar.setVisible(true);
+        statusLabel.setText("Buscando informações do livro...");
+
+        // Busca informações do livro e depois os relacionados
+        new SwingWorker<Livro, String>() {
             @Override
             protected Livro doInBackground() {
-                return livroController.buscarLivroPorIsbnApi(isbn)
-                        .orElse(null);
+                // Publica atualizações de status
+                publish("Buscando informações do livro...");
+
+                // Busca informações do livro pelo ISBN
+                Livro resultado = livroController.buscarLivroPorIsbnApi(isbn).orElse(null);
+
+                if (resultado != null) {
+                    publish("Buscando livros relacionados...");
+                }
+
+                return resultado;
+            }
+
+            @Override
+            protected void process(List<String> chunks) {
+                // Atualiza o status com a mensagem mais recente
+                if (!chunks.isEmpty()) {
+                    statusLabel.setText(chunks.get(chunks.size() - 1));
+                }
             }
 
             @Override
@@ -195,6 +271,7 @@ public class LivroFormDialog extends BaseDialog {
                 try {
                     Livro resultado = get();
                     if (resultado != null) {
+                        // Preenche os campos com os dados do livro
                         formPanel.setTextField(FIELD_TITULO, resultado.getTitulo());
 
                         if (resultado.getEditora() != null) {
@@ -210,18 +287,77 @@ public class LivroFormDialog extends BaseDialog {
                                 .collect(Collectors.joining(", "));
                         formPanel.setTextField(FIELD_AUTORES, autores);
 
-                        showInfo("Livro encontrado e dados carregados.");
+                        // Inicia a busca de livros relacionados
+                        buscarLivrosRelacionados(isbn);
                     } else {
+                        statusLabel.setText("Nenhum livro encontrado com este ISBN");
+                        progressBar.setVisible(false);
+                        buscarButton.setEnabled(true);
+                        buscarButton.setText("Buscar por ISBN");
                         showInfo("Nenhum livro encontrado com ISBN: " + isbn);
                     }
-                } catch (Exception ex) {
-                    showError("Erro na busca por ISBN: " + ex.getMessage());
-                } finally {
-                    buscarButton.setEnabled(true);
-                    buscarButton.setText("Buscar por ISBN");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    finalizarBusca("Busca interrompida");
+                } catch (ExecutionException e) {
+                    finalizarBusca("Erro na busca: " + e.getCause().getMessage());
+                    showError("Erro na busca por ISBN: " + e.getCause().getMessage());
                 }
             }
         }.execute();
+    }
+
+    /**
+     * Busca livros relacionados por subjects
+     */
+    private void buscarLivrosRelacionados(String isbn) {
+        // Status já deve estar visível da busca anterior
+        statusLabel.setText("Buscando livros relacionados...");
+
+        new SwingWorker<List<Livro>, Void>() {
+            @Override
+            protected List<Livro> doInBackground() {
+                return livroController.buscarLivrosRelacionadosPorSubjects(isbn, 5);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Livro> livrosRelacionados = get();
+
+                    if (livrosRelacionados.isEmpty()) {
+                        finalizarBusca("Nenhum livro relacionado encontrado");
+                        showInfo("Livro encontrado com sucesso, mas nenhum livro relacionado foi identificado.");
+                    } else {
+                        // Adiciona os livros relacionados ao componente seletor
+                        int contador = 0;
+                        for (Livro livroRel : livrosRelacionados) {
+                            livrosSimilaresSelector.adicionarLivro(livroRel);
+                            contador++;
+                        }
+
+                        finalizarBusca("Encontrados " + contador + " livros relacionados");
+                        showInfo("Livro encontrado e " + contador + " livros relacionados adicionados.");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    finalizarBusca("Busca interrompida");
+                } catch (ExecutionException e) {
+                    finalizarBusca("Erro: " + e.getCause().getMessage());
+                    showError("Erro ao buscar livros relacionados: " + e.getCause().getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    /**
+     * Finaliza o processo de busca resetando os controles
+     */
+    private void finalizarBusca(String mensagemStatus) {
+        statusLabel.setText(mensagemStatus);
+        progressBar.setVisible(false);
+        buscarButton.setEnabled(true);
+        buscarButton.setText("Buscar por ISBN");
     }
 
     /**

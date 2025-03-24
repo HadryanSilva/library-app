@@ -21,6 +21,7 @@ public class LivroService {
 
     private final LivroRepository livroRepository;
     private final OpenLibraryService openLibraryService;
+    private final WorkSubjectService workSubjectService;
 
     /**
      * Construtor com injeção de dependências
@@ -28,6 +29,7 @@ public class LivroService {
     public LivroService(LivroRepository livroRepository, OpenLibraryService openLibraryService) {
         this.livroRepository = livroRepository;
         this.openLibraryService = openLibraryService;
+        this.workSubjectService = new WorkSubjectService(openLibraryService);
     }
 
     /**
@@ -96,7 +98,7 @@ public class LivroService {
     /**
      * Atualiza livros similares
      */
-    public Livro atualizarLivrosSimilares(Livro livro, List<String> isbns) {
+    public void atualizarLivrosSimilares(Livro livro, List<String> isbns) {
         if (livro == null || livro.getId() == null) {
             throw new IllegalArgumentException("Livro precisa estar salvo para atualizar livros similares");
         }
@@ -111,7 +113,7 @@ public class LivroService {
                 }
                 livroRepository.findByIsbn(isbn.trim()).ifPresent(livro::adicionarLivroSimilar);
             }
-            return livroRepository.save(livro);
+            livroRepository.save(livro);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Erro ao atualizar livros similares", e);
             throw new RuntimeException("Erro ao atualizar livros similares: " + e.getMessage(), e);
@@ -149,5 +151,17 @@ public class LivroService {
         }
 
         return sugestoes;
+    }
+
+    /**
+     * Busca livros relacionados por assuntos (subjects) via API
+     */
+    public List<Livro> buscarLivrosRelacionadosPorSubjects(String isbn, int maxResultados) {
+        try {
+            return workSubjectService.buscarLivrosRelacionados(isbn, maxResultados);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao buscar livros relacionados por subjects", e);
+            return new ArrayList<>();
+        }
     }
 }

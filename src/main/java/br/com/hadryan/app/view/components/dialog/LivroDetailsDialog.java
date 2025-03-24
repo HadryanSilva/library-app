@@ -6,6 +6,7 @@ import br.com.hadryan.app.view.components.base.BaseDialog;
 import br.com.hadryan.app.view.components.base.FormPanel;
 
 import javax.swing.*;
+import java.awt.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +37,8 @@ public class LivroDetailsDialog extends BaseDialog {
         initComponents();
         preencherCampos();
 
-        pack();
+        // Aumentando o tamanho do diálogo
+        setSize(800, 600);
         setLocationRelativeTo(parent);
     }
 
@@ -46,29 +48,32 @@ public class LivroDetailsDialog extends BaseDialog {
     private void initComponents() {
         formPanel = new FormPanel();
 
-        // Cria campos somente leitura
-        JTextField tituloField = formPanel.addField("Título:", new JTextField(30), FIELD_TITULO);
+        JTextField tituloField = formPanel.addField("Título:", new JTextField(40), FIELD_TITULO);
         tituloField.setEditable(false);
+        tituloField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        JTextField isbnField = formPanel.addField("ISBN:", new JTextField(20), FIELD_ISBN);
+        JTextField isbnField = formPanel.addField("ISBN:", new JTextField(30), FIELD_ISBN);
         isbnField.setEditable(false);
+        isbnField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        JTextArea autoresArea = formPanel.addTextArea("Autores:", FIELD_AUTORES, 3, 30);
+        JTextArea autoresArea = formPanel.addTextArea("Autores:", FIELD_AUTORES, 4, 40);
         autoresArea.setEditable(false);
+        autoresArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        JTextField editoraField = formPanel.addField("Editora:", new JTextField(30), FIELD_EDITORA);
+        JTextField editoraField = formPanel.addField("Editora:", new JTextField(40), FIELD_EDITORA);
         editoraField.setEditable(false);
+        editoraField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        JTextField dataPublicacaoField = formPanel.addField("Data de Publicação:", new JTextField(15), FIELD_DATA_PUBLICACAO);
+        JTextField dataPublicacaoField = formPanel.addField("Data de Publicação:", new JTextField(25), FIELD_DATA_PUBLICACAO);
         dataPublicacaoField.setEditable(false);
+        dataPublicacaoField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        JTextArea livrosSimilaresArea = formPanel.addTextArea("Livros Similares:", FIELD_LIVROS_SIMILARES, 3, 30);
+        JTextArea livrosSimilaresArea = formPanel.addTextArea("Livros Similares:", FIELD_LIVROS_SIMILARES, 10, 40);
         livrosSimilaresArea.setEditable(false);
+        livrosSimilaresArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        // Define o componente principal
         setMainComponent(formPanel);
 
-        // Adiciona o botão de fechar
         addButton("Fechar", e -> dispose());
     }
 
@@ -95,9 +100,9 @@ public class LivroDetailsDialog extends BaseDialog {
                 .collect(Collectors.joining(", "));
         formPanel.setTextField(FIELD_AUTORES, autores);
 
-        // Livros similares como lista formatada
+        // Livros similares no formato {isbn} - {name}
         String livrosSimilares = livro.getLivrosSimilares().stream()
-                .map(l -> l.getTitulo() + " (ISBN: " + l.getIsbn() + ")")
+                .map(l -> l.getIsbn() + " - " + l.getTitulo())
                 .collect(Collectors.joining("\n"));
         formPanel.setTextField(FIELD_LIVROS_SIMILARES, livrosSimilares);
     }

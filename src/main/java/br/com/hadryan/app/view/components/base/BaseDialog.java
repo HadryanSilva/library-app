@@ -7,6 +7,9 @@ import java.util.function.Consumer;
 
 /**
  * Classe base para diálogos customizados
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public abstract class BaseDialog extends JDialog {
 
@@ -20,21 +23,31 @@ public abstract class BaseDialog extends JDialog {
     public BaseDialog(Window parent, String title) {
         super(parent, title, ModalityType.APPLICATION_MODAL);
 
-        contentPanel = new JPanel(new BorderLayout());
-        buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-
         setLayout(new BorderLayout());
+
+        contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
         add(contentPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        setMinimumSize(new Dimension(400, 300));
+        setMinimumSize(new Dimension(450, 300));
     }
 
     /**
-     * Define o componente principal
+     * Define o componente principal, que ocupará todo o espaço central
      */
     protected void setMainComponent(JComponent component) {
+        contentPanel.removeAll();
         contentPanel.add(component, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
     /**
@@ -42,6 +55,8 @@ public abstract class BaseDialog extends JDialog {
      */
     protected JButton addButton(String text, Consumer<ActionEvent> action) {
         JButton button = new JButton(text);
+        button.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        button.setPreferredSize(new Dimension(120, 30));
         button.addActionListener(action::accept);
         buttonPanel.add(button);
         return button;
@@ -82,13 +97,5 @@ public abstract class BaseDialog extends JDialog {
      */
     protected void showInfo(String message) {
         JOptionPane.showMessageDialog(this, message, "Informação", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    /**
-     * Exibe um diálogo de confirmação
-     */
-    protected boolean confirmAction(String message) {
-        return JOptionPane.showConfirmDialog(this, message, "Confirmação",
-                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
 }

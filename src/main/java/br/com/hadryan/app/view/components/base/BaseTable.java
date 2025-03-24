@@ -6,9 +6,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -19,9 +17,7 @@ public class BaseTable<T> extends JPanel {
 
     private final JTable table;
     private final DefaultTableModel tableModel;
-    private final JScrollPane scrollPane;
     private Consumer<T> onDoubleClickAction;
-    private final Map<Integer, String> columnMap = new HashMap<>();
     private final List<T> data = new ArrayList<>();
 
     /**
@@ -37,14 +33,25 @@ public class BaseTable<T> extends JPanel {
             }
         };
 
-        for (int i = 0; i < columns.length; i++) {
-            tableModel.addColumn(columns[i]);
-            columnMap.put(i, columns[i]);
+        for (String column : columns) {
+            tableModel.addColumn(column);
         }
 
         table = new JTable(tableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getTableHeader().setReorderingAllowed(false);
+
+        table.setRowHeight(28);
+        table.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        table.getTableHeader().setFont(new Font(Font.DIALOG, Font.BOLD, 14));
+
+        if (table.getColumnCount() >= 5) {
+            table.getColumnModel().getColumn(0).setPreferredWidth(60);
+            table.getColumnModel().getColumn(1).setPreferredWidth(300);
+            table.getColumnModel().getColumn(2).setPreferredWidth(150);
+            table.getColumnModel().getColumn(3).setPreferredWidth(100);
+            table.getColumnModel().getColumn(4).setPreferredWidth(120);
+        }
 
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -55,8 +62,10 @@ public class BaseTable<T> extends JPanel {
             }
         });
 
-        // Cria o painel de rolagem
-        scrollPane = new JScrollPane(table);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+
         add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -89,20 +98,6 @@ public class BaseTable<T> extends JPanel {
             return data.get(selectedRow);
         }
         return null;
-    }
-
-    /**
-     * Obtém o índice da linha selecionada
-     */
-    public int getSelectedRow() {
-        return table.getSelectedRow();
-    }
-
-    /**
-     * Obtém a tabela
-     */
-    public JTable getTable() {
-        return table;
     }
 
     /**

@@ -8,10 +8,12 @@ import java.util.Map;
 /**
  * Componente de formulário reutilizável que simplifica a criação e gerenciamento
  * de formulários com layout padronizado.
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class FormPanel extends JPanel {
 
-    private final GridBagLayout layout;
     private final GridBagConstraints gbc;
     private int currentRow = 0;
     private final Map<String, JComponent> fields = new HashMap<>();
@@ -20,12 +22,14 @@ public class FormPanel extends JPanel {
      * Construtor do painel de formulário com layout GridBag
      */
     public FormPanel() {
-        this.layout = new GridBagLayout();
+        GridBagLayout layout = new GridBagLayout();
         setLayout(layout);
 
         gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
+
+        setBackground(UIManager.getColor("Panel.background"));
     }
 
     /**
@@ -37,11 +41,14 @@ public class FormPanel extends JPanel {
      * @return O componente adicionado
      */
     public <T extends JComponent> T addField(String labelText, T field, String fieldName) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
+
         gbc.gridx = 0;
         gbc.gridy = currentRow;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0.0;
-        add(new JLabel(labelText), gbc);
+        add(label, gbc);
 
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -58,20 +65,23 @@ public class FormPanel extends JPanel {
      * Adiciona um campo com label e um componente adicional na mesma linha
      */
     public <T extends JComponent> T addFieldWithComponent(String labelText, T field, String fieldName, JComponent extra) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
+
         gbc.gridx = 0;
         gbc.gridy = currentRow;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0.0;
-        add(new JLabel(labelText), gbc);
+        add(label, gbc);
 
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
+        gbc.weightx = 0.8;
         add(field, gbc);
 
         gbc.gridx = 2;
         gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
+        gbc.weightx = 0.2;
         add(extra, gbc);
 
         fields.put(fieldName, field);
@@ -87,21 +97,30 @@ public class FormPanel extends JPanel {
         JTextArea textArea = new JTextArea(rows, cols);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
+        textArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
         JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        // Cria um label com fonte adequada
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
 
         gbc.gridx = 0;
         gbc.gridy = currentRow;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0.0;
-        add(new JLabel(labelText), gbc);
+        gbc.weighty = 0.0;
+        add(label, gbc);
 
         gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
+        gbc.weighty = rows > 5 ? 1.0 : 0.0; // Dá peso vertical para áreas de texto grandes
         gbc.gridwidth = 2;
         add(scrollPane, gbc);
         gbc.gridwidth = 1;
+        gbc.weighty = 0.0; // Reseta o peso vertical
 
         fields.put(fieldName, textArea);
         currentRow++;
@@ -115,11 +134,21 @@ public class FormPanel extends JPanel {
     public <T extends JComponent> T addFullWidthComponent(T component, String fieldName) {
         gbc.gridx = 0;
         gbc.gridy = currentRow;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
+
+        if (component instanceof JScrollPane ||
+                component instanceof JPanel ||
+                (component instanceof JTextArea && ((JTextArea)component).getRows() > 5)) {
+            gbc.weighty = 1.0;
+        } else {
+            gbc.weighty = 0.0;
+        }
+
         gbc.gridwidth = 3;
         add(component, gbc);
         gbc.gridwidth = 1;
+        gbc.weighty = 0.0; // Reseta o peso vertical
 
         if (fieldName != null) {
             fields.put(fieldName, component);
@@ -127,14 +156,6 @@ public class FormPanel extends JPanel {
         currentRow++;
 
         return component;
-    }
-
-    /**
-     * Obtém um campo pelo nome
-     */
-    @SuppressWarnings("unchecked")
-    public <T extends JComponent> T getField(String fieldName) {
-        return (T) fields.get(fieldName);
     }
 
     /**

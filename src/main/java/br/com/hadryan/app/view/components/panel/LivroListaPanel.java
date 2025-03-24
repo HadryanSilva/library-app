@@ -6,6 +6,7 @@ import br.com.hadryan.app.model.entity.Livro;
 import br.com.hadryan.app.view.MainFrame;
 import br.com.hadryan.app.view.components.base.BaseCrudPanel;
 import br.com.hadryan.app.view.components.base.BaseTable;
+import br.com.hadryan.app.view.components.dialog.LivroDetailsDialog;
 import br.com.hadryan.app.view.components.dialog.LivroFormDialog;
 
 import javax.swing.*;
@@ -14,6 +15,9 @@ import java.util.stream.Collectors;
 
 /**
  * Painel refatorado para listagem e gerenciamento de livros
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class LivroListaPanel extends BaseCrudPanel {
 
@@ -25,6 +29,7 @@ public class LivroListaPanel extends BaseCrudPanel {
     private BaseTable<Livro> livroTable;
     private JButton editarButton;
     private JButton excluirButton;
+    private JButton visualizarButton;
 
     /**
      * Construtor do painel de listagem
@@ -49,14 +54,17 @@ public class LivroListaPanel extends BaseCrudPanel {
 
         setMainComponent(livroTable);
 
-        JButton adicionarButton = addActionButton("Adicionar Livro", e -> adicionarLivro());
+        addActionButton("Adicionar Livro", e -> adicionarLivro());
         editarButton = addActionButton("Editar Livro", e -> editarLivroSelecionado());
         excluirButton = addActionButton("Excluir Livro", e -> excluirLivroSelecionado());
+
+        visualizarButton = addActionButton("Visualizar Detalhes", e -> visualizarLivroSelecionado());
+
         addActionButton("Atualizar", e -> updateData());
 
-        // Inicialmente desabilita botões de edição/exclusão
         editarButton.setEnabled(false);
         excluirButton.setEnabled(false);
+        visualizarButton.setEnabled(false);
     }
 
     /**
@@ -67,6 +75,7 @@ public class LivroListaPanel extends BaseCrudPanel {
             boolean temSelecao = livro != null;
             editarButton.setEnabled(temSelecao);
             excluirButton.setEnabled(temSelecao);
+            visualizarButton.setEnabled(temSelecao);
         });
     }
 
@@ -158,5 +167,24 @@ public class LivroListaPanel extends BaseCrudPanel {
         } catch (Exception ex) {
             showError("Erro ao excluir livro: " + ex.getMessage());
         }
+    }
+
+    /**
+     * Visualiza os detalhes do livro selecionado
+     */
+    private void visualizarLivroSelecionado() {
+        Livro livroSelecionado = livroTable.getSelectedItem();
+        if (livroSelecionado == null) {
+            return;
+        }
+
+        Optional<Livro> livroCompleto = livroController.buscarPorId(livroSelecionado.getId());
+        if (!livroCompleto.isPresent()) {
+            showError("Livro não encontrado. Ele pode ter sido excluído.");
+            return;
+        }
+
+        LivroDetailsDialog dialog = new LivroDetailsDialog(janelaPrincipal, livroCompleto.get());
+        dialog.setVisible(true);
     }
 }

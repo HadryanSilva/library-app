@@ -53,8 +53,9 @@ public class MainFrame extends JFrame {
         mostrarPainel(PAINEL_LISTA);
 
         setTitle("Sistema de Gerenciamento de Biblioteca");
-        setSize(900, 600);
-        setMinimumSize(new Dimension(800, 500));
+        // Aumenta o tamanho da janela principal
+        setSize(1200, 800);
+        setMinimumSize(new Dimension(1000, 600));
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
     }
@@ -214,12 +215,5 @@ public class MainFrame extends JFrame {
      */
     public void atualizarListaLivros() {
         ((LivroListaPanel) paineis.get(PAINEL_LISTA)).updateData();
-    }
-
-    /**
-     * Retorna o controlador de livros
-     */
-    public LivroController getLivroController() {
-        return livroController;
     }
 }

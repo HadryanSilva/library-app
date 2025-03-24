@@ -22,7 +22,8 @@ public class LivrosSimilaresSelector extends JPanel {
     private JButton selecionarButton;
     private JButton sugerirButton;
 
-    private final Set<String> isbnsSet = new HashSet<>();
+    // Map que associa ISBNs aos títulos para exibição formatada
+    private final Map<String, String> isbnToTitleMap = new HashMap<>();
     private final LivroController livroController;
     private final Window parentWindow;
     private Livro livroAtual;
@@ -45,25 +46,48 @@ public class LivrosSimilaresSelector extends JPanel {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        selectedBooksArea = new JTextArea(3, 30);
+        // Área de texto que ocupa todo o espaço disponível
+        selectedBooksArea = new JTextArea();
         selectedBooksArea.setLineWrap(true);
         selectedBooksArea.setWrapStyleWord(true);
         selectedBooksArea.setEditable(true);
+        selectedBooksArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
+        // Botões com tamanho adequado
         selecionarButton = new JButton("Selecionar Livros");
+        selecionarButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        selecionarButton.setPreferredSize(new Dimension(150, 30));
+
         sugerirButton = new JButton("Sugerir Similares");
+        sugerirButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        sugerirButton.setPreferredSize(new Dimension(150, 30));
     }
 
     /**
      * Configura o layout do componente
      */
     private void layoutComponents() {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // ScrollPane para a área de texto que ocupa todo o espaço disponível
+        JScrollPane scrollPane = new JScrollPane(selectedBooksArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setPreferredSize(new Dimension(500, 200));
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        // Painel de botões com layout mais adequado
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         buttonPanel.add(sugerirButton);
         buttonPanel.add(selecionarButton);
 
-        add(new JScrollPane(selectedBooksArea), BorderLayout.CENTER);
+        // Adiciona os componentes ao painel principal
+        add(scrollPane, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+
+        // Define tamanho mínimo para garantir visibilidade adequada
+        setPreferredSize(new Dimension(500, 250));
     }
 
     /**
@@ -122,7 +146,7 @@ public class LivrosSimilaresSelector extends JPanel {
 
         dialog.add(new JScrollPane(livroTable), BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
-        dialog.setSize(800, 400);
+        dialog.setSize(900, 500);
         dialog.setLocationRelativeTo(parentWindow);
         dialog.setVisible(true);
     }
@@ -131,9 +155,16 @@ public class LivrosSimilaresSelector extends JPanel {
      * Cria o painel de botões para o diálogo de seleção
      */
     private JPanel createButtonPanel(JDialog dialog, BaseTable<Livro> livroTable) {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 10, 10));
+
         JButton adicionarButton = new JButton("Adicionar");
+        adicionarButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        adicionarButton.setPreferredSize(new Dimension(120, 30));
+
         JButton fecharButton = new JButton("Fechar");
+        fecharButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
+        fecharButton.setPreferredSize(new Dimension(120, 30));
 
         adicionarButton.addActionListener(e -> {
             Livro livroSelecionado = livroTable.getSelectedItem();
@@ -147,9 +178,9 @@ public class LivrosSimilaresSelector extends JPanel {
                     return;
                 }
 
-                if (isbnsSet.add(livroSelecionado.getIsbn())) {
-                    atualizarAreaLivrosSelecionados();
-                }
+                // Adiciona o livro ao map com seu ISBN e título
+                isbnToTitleMap.put(livroSelecionado.getIsbn(), livroSelecionado.getTitulo());
+                atualizarAreaLivrosSelecionados();
             } else {
                 JOptionPane.showMessageDialog(dialog,
                         "Selecione um livro.",
@@ -189,7 +220,8 @@ public class LivrosSimilaresSelector extends JPanel {
         }
 
         for (Livro sugestao : sugestoes) {
-            isbnsSet.add(sugestao.getIsbn());
+            // Adiciona o livro ao map com seu ISBN e título
+            isbnToTitleMap.put(sugestao.getIsbn(), sugestao.getTitulo());
         }
 
         atualizarAreaLivrosSelecionados();
@@ -201,10 +233,22 @@ public class LivrosSimilaresSelector extends JPanel {
     }
 
     /**
-     * Atualiza a área de texto com os ISBNs selecionados
+     * Atualiza a área de texto com os livros selecionados no formato {isbn} - {name}
      */
     private void atualizarAreaLivrosSelecionados() {
-        selectedBooksArea.setText(String.join(", ", isbnsSet));
+        StringBuilder sb = new StringBuilder();
+        List<String> isbns = new ArrayList<>(isbnToTitleMap.keySet());
+        Collections.sort(isbns);
+
+        for (String isbn : isbns) {
+            if (sb.length() > 0) {
+                sb.append("\n");
+            }
+            // Formato: {isbn} - {name}
+            sb.append(isbn).append(" - ").append(isbnToTitleMap.get(isbn));
+        }
+
+        selectedBooksArea.setText(sb.toString());
     }
 
     /**
@@ -212,11 +256,11 @@ public class LivrosSimilaresSelector extends JPanel {
      */
     public void setLivroAtual(Livro livro) {
         this.livroAtual = livro;
-        isbnsSet.clear();
+        isbnToTitleMap.clear();
 
         if (livro != null && livro.getLivrosSimilares() != null) {
             for (Livro livroSimilar : livro.getLivrosSimilares()) {
-                isbnsSet.add(livroSimilar.getIsbn());
+                isbnToTitleMap.put(livroSimilar.getIsbn(), livroSimilar.getTitulo());
             }
         }
 
@@ -227,37 +271,79 @@ public class LivrosSimilaresSelector extends JPanel {
      * Obtém a lista de ISBNs dos livros similares selecionados
      */
     public List<String> getIsbnsSelcionados() {
-        return new ArrayList<>(isbnsSet);
-    }
-
-    /**
-     * Obtém o texto da área de seleção
-     */
-    public String getTextoLivrosSelecionados() {
-        return selectedBooksArea.getText();
-    }
-
-    /**
-     * Define o texto da área de seleção
-     */
-    public void setTextoLivrosSelecionados(String texto) {
-        selectedBooksArea.setText(texto);
-        analisarEntradaManual();
+        return new ArrayList<>(isbnToTitleMap.keySet());
     }
 
     /**
      * Analisa a entrada manual do usuário para atualizar o conjunto de ISBNs
+     * e a associação de ISBNs a títulos quando disponível
      */
     private void analisarEntradaManual() {
         String texto = selectedBooksArea.getText().trim();
-
-        isbnsSet.clear();
+        Set<String> novosIsbns = new HashSet<>();
 
         if (!texto.isEmpty()) {
-            Arrays.stream(texto.split(","))
-                    .map(String::trim)
-                    .filter(isbn -> !isbn.isEmpty())
-                    .forEach(isbnsSet::add);
+            String[] linhas = texto.split("\\n");
+            for (String linha : linhas) {
+                String isbn;
+                if (linha.contains(" - ")) {
+                    String[] partes = linha.split(" - ", 2);
+                    isbn = partes[0].trim();
+                    String titulo = partes.length > 1 ? partes[1].trim() : "";
+                    if (!titulo.isEmpty()) {
+                        isbnToTitleMap.put(isbn, titulo);
+                    }
+                } else if (linha.contains(",")) {
+                    String[] isbns = linha.split(",");
+                    for (String isbnItem : isbns) {
+                        isbn = isbnItem.trim();
+                        if (!isbn.isEmpty()) {
+                            novosIsbns.add(isbn);
+                            if (!isbnToTitleMap.containsKey(isbn)) {
+                                buscarTituloPorIsbn(isbn);
+                            }
+                        }
+                    }
+                    continue;
+                } else {
+                    isbn = linha.trim();
+                }
+
+                if (!isbn.isEmpty()) {
+                    novosIsbns.add(isbn);
+                    if (!isbnToTitleMap.containsKey(isbn)) {
+                        buscarTituloPorIsbn(isbn);
+                    }
+                }
+            }
+        }
+
+        isbnToTitleMap.keySet().retainAll(novosIsbns);
+
+        for (String isbn : novosIsbns) {
+            if (!isbnToTitleMap.containsKey(isbn)) {
+                isbnToTitleMap.put(isbn, "");
+            }
+        }
+    }
+
+    /**
+     * Busca o título de um livro pelo ISBN no controlador
+     */
+    private void buscarTituloPorIsbn(String isbn) {
+        livroController.buscarPorIsbn(isbn).ifPresent(livro -> {
+            isbnToTitleMap.put(isbn, livro.getTitulo());
+        });
+    }
+
+    /**
+     * Adiciona um livro à lista de similares
+     */
+    public void adicionarLivro(Livro livro) {
+        if (livro != null && livro.getIsbn() != null) {
+            isbnToTitleMap.put(livro.getIsbn(), livro.getTitulo());
+            atualizarAreaLivrosSelecionados();
         }
     }
 }
+
