@@ -12,34 +12,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Implementação concreta da estratégia de importação para arquivos de texto com tamanho fixo.
- * Processa arquivos onde cada campo tem uma posição e comprimento fixos.
+ * Implementação refinada da estratégia de importação para arquivos de texto com tamanho fixo.
+ * Ajuste fino nos limites dos campos para garantir extração precisa.
  */
 public class FixedWidthImportStrategy implements ImportStrategy {
 
     private static final Logger LOGGER = Logger.getLogger(FixedWidthImportStrategy.class.getName());
 
-    // Definição da estrutura do arquivo (posições iniciais e comprimentos)
-    private static final int ISBN_START = 0;
-    private static final int ISBN_LENGTH = 20;
-
-    private static final int TITULO_START = 20;
-    private static final int TITULO_LENGTH = 100;
-
-    private static final int AUTORES_START = 120;
-    private static final int AUTORES_LENGTH = 100;
-
-    private static final int EDITORA_START = 220;
-    private static final int EDITORA_LENGTH = 50;
-
-    private static final int DATA_PUB_START = 270;
-    private static final int DATA_PUB_LENGTH = 30;
-
     @Override
     public boolean suporta(File arquivo) {
-        // Verifica se o arquivo tem extensão .txt ou .dat (comuns para arquivos de tamanho fixo)
         String nome = arquivo.getName().toLowerCase();
         return nome.endsWith(".txt") || nome.endsWith(".dat") || nome.endsWith(".fix");
     }
@@ -47,76 +32,140 @@ public class FixedWidthImportStrategy implements ImportStrategy {
     @Override
     public List<Livro> importar(File arquivo) throws IOException {
         List<Livro> livrosImportados = new ArrayList<>();
+        int totalLinhas = 0;
+        int livrosImportadosCount = 0;
+        int livrosIgnorados = 0;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(arquivo))) {
+        try (BufferedReader reader = new BufferedReader(
+                new FileReader(arquivo))) {
             String linha;
             int numeroLinha = 0;
-
-            // Lê cada linha do arquivo
             while ((linha = reader.readLine()) != null) {
                 numeroLinha++;
+                totalLinhas++;
 
-                // Pula a primeira linha se for cabeçalho (opcional)
+                LOGGER.fine("Processando linha " + numeroLinha + ": " + linha);
                 if (numeroLinha == 1 && podeSerCabecalho(linha)) {
+                    LOGGER.fine("Linha 1 identificada como cabeçalho. Ignorando.");
                     continue;
                 }
-
-                // Verifica se a linha tem o tamanho mínimo necessário
-                if (linha.length() < DATA_PUB_START) {
+                if (linha.length() < 80) {
+                    livrosIgnorados++;
                     LOGGER.warning("Linha " + numeroLinha + " muito curta. Ignorando.");
                     continue;
                 }
 
                 try {
-                    // Extrai os campos com base nas posições definidas
-                    String isbn = extrairCampo(linha, ISBN_START, ISBN_LENGTH).trim();
+                    Livro livro = processarLinhaComRegex(linha, numeroLinha);
 
-                    // ISBN é um campo obrigatório, pula linhas sem ISBN
-                    if (isbn.isEmpty()) {
-                        LOGGER.warning("Linha " + numeroLinha + " sem ISBN. Ignorando.");
-                        continue;
+                    if (livro != null) {
+                        livrosImportados.add(livro);
+                        livrosImportadosCount++;
+                    } else {
+                        livrosIgnorados++;
                     }
-
-                    String titulo = extrairCampo(linha, TITULO_START, TITULO_LENGTH).trim();
-                    String autoresStr = extrairCampo(linha, AUTORES_START, AUTORES_LENGTH).trim();
-                    String editora = extrairCampo(linha, EDITORA_START, EDITORA_LENGTH).trim();
-                    String dataPublicacao = extrairCampo(linha, DATA_PUB_START, DATA_PUB_LENGTH).trim();
-
-                    // Cria o livro com os dados extraídos
-                    Livro livro = new Livro();
-                    livro.setIsbn(isbn);
-                    livro.setTitulo(titulo);
-
-                    // Define a editora se existir
-                    if (!editora.isEmpty()) {
-                        livro.setEditora(new Editora(editora));
-                    }
-
-                    // Define a data de publicação se existir
-                    if (!dataPublicacao.isEmpty()) {
-                        livro.setDataPublicacao(dataPublicacao);
-                    }
-
-                    // Processa e adiciona os autores
-                    processarAutores(livro, autoresStr);
-
-                    livrosImportados.add(livro);
 
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Erro ao processar linha " + numeroLinha, e);
+                    livrosIgnorados++;
+                    LOGGER.log(Level.WARNING, "Erro ao processar linha " + numeroLinha + ": " + e.getMessage(), e);
                 }
             }
         }
+
+        LOGGER.info("Importação de arquivo de largura fixa: " + livrosImportadosCount +
+                " livros importados, " + livrosIgnorados + " livros ignorados de um total de " +
+                totalLinhas + " linhas.");
 
         return livrosImportados;
     }
 
     /**
-     * Extrai um campo da linha de acordo com a posição e comprimento definidos
+     * Processa uma linha usando expressões regulares para identificar campos com mais precisão.
+     * Este método tenta identificar padrões específicos dentro da linha, como o ISBN.
      */
-    private String extrairCampo(String linha, int posicaoInicial, int comprimento) {
-        int fim = Math.min(posicaoInicial + comprimento, linha.length());
-        return posicaoInicial < linha.length() ? linha.substring(posicaoInicial, fim) : "";
+    private Livro processarLinhaComRegex(String linha, int numeroLinha) {
+        Pattern isbnPattern = Pattern.compile("\\s+(97[89][\\d-]{10,14}|[\\dX-]{10,13})\\s+");
+        Matcher isbnMatcher = isbnPattern.matcher(linha);
+
+        if (!isbnMatcher.find()) {
+            LOGGER.warning("Linha " + numeroLinha + ": Não foi possível encontrar um ISBN válido.");
+            return null;
+        }
+
+        int isbnStartPos = isbnMatcher.start();
+        int isbnEndPos = isbnMatcher.end();
+        String isbn = isbnMatcher.group().trim();
+
+        String titulo = "";
+        String livrosSimilares = "";
+        String dataPublicacao = "";
+        String autores;
+        String editora;
+
+        try {
+            Pattern tituloEndPattern = Pattern.compile("\\S+(?=\\s{2,})");
+            Matcher tituloMatcher = tituloEndPattern.matcher(linha.substring(0, isbnStartPos));
+            int tituloEndPos = 0;
+            if (tituloMatcher.find()) {
+                tituloEndPos = tituloMatcher.end();
+                titulo = linha.substring(0, tituloEndPos).trim();
+            }
+
+            String middlePart = linha.substring(tituloEndPos, isbnStartPos).trim();
+            Pattern dataPattern = Pattern.compile("\\d{2}/\\d{2}/\\d{4}");
+            Matcher dataMatcher = dataPattern.matcher(middlePart);
+
+            if (dataMatcher.find()) {
+                int dataStartPos = dataMatcher.start();
+                dataPublicacao = dataMatcher.group().trim();
+                autores = middlePart.substring(0, dataStartPos).trim();
+            } else {
+                autores = middlePart;
+            }
+
+            String afterISBN = linha.substring(isbnEndPos).trim();
+            int editoraEndPos = afterISBN.length();
+
+            Pattern similaresStartPattern = Pattern.compile("\\s{2,}");
+            Matcher similaresStartMatcher = similaresStartPattern.matcher(afterISBN);
+
+            if (similaresStartMatcher.find()) {
+                editoraEndPos = similaresStartMatcher.start();
+                livrosSimilares = afterISBN.substring(similaresStartMatcher.end()).trim();
+            }
+
+            editora = afterISBN.substring(0, editoraEndPos).trim();
+
+            LOGGER.fine("Linha " + numeroLinha + " - Extraído por regex: Título: [" + titulo +
+                    "], Autores: [" + autores + "], Data: [" + dataPublicacao +
+                    "], ISBN: [" + isbn + "], Editora: [" + editora +
+                    "], Similares: [" + livrosSimilares + "]");
+
+            Livro livro = new Livro();
+            livro.setIsbn(isbn);
+
+            if (!titulo.isEmpty()) {
+                livro.setTitulo(titulo);
+            } else {
+                livro.setTitulo("Livro sem título (ISBN: " + isbn.substring(Math.max(0, isbn.length() - 6)) + ")");
+            }
+            if (!editora.isEmpty()) {
+                livro.setEditora(new Editora(editora));
+            }
+            if (!dataPublicacao.isEmpty()) {
+                livro.setDataPublicacao(dataPublicacao);
+            }
+            processarAutores(livro, autores);
+
+            return livro;
+
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao processar campos da linha " + numeroLinha + ": " + e.getMessage(), e);
+            Livro livroMinimo = new Livro();
+            livroMinimo.setIsbn(isbn);
+            livroMinimo.setTitulo("Livro importado com erros (ISBN: " + isbn + ")");
+            return livroMinimo;
+        }
     }
 
     /**
@@ -127,8 +176,7 @@ public class FixedWidthImportStrategy implements ImportStrategy {
             return;
         }
 
-        // Assume que os autores estão separados por ponto-e-vírgula
-        String[] autoresArray = autoresStr.split(";");
+        String[] autoresArray = autoresStr.split("[,;]");
         for (String nomeAutor : autoresArray) {
             String nome = nomeAutor.trim();
             if (!nome.isEmpty()) {
@@ -141,18 +189,9 @@ public class FixedWidthImportStrategy implements ImportStrategy {
      * Tenta identificar se a linha é um cabeçalho baseado em heurísticas simples
      */
     private boolean podeSerCabecalho(String linha) {
-        // Considera uma linha como cabeçalho se contém palavras típicas de cabeçalho
-        // e não contém ISBN válido
         String linhaBaixa = linha.toLowerCase();
-        boolean temPalavrasCabecalho = linhaBaixa.contains("isbn") ||
+        return linhaBaixa.contains("isbn") ||
                 linhaBaixa.contains("titulo") ||
                 linhaBaixa.contains("autor");
-
-        // Extrai o campo onde estaria o ISBN
-        String possiveIsbn = extrairCampo(linha, ISBN_START, ISBN_LENGTH).trim();
-        // Verifica se o possível ISBN parece válido (apenas dígitos e X)
-        boolean naoTemIsbnValido = !possiveIsbn.matches("[0-9X-]+");
-
-        return temPalavrasCabecalho && naoTemIsbnValido;
     }
 }

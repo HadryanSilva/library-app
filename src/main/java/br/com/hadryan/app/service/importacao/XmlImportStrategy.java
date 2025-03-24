@@ -6,17 +6,21 @@ import br.com.hadryan.app.model.entity.Livro;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Implementação concreta da estratégia de importação para arquivos XML.
@@ -35,33 +39,68 @@ public class XmlImportStrategy implements ImportStrategy {
     public List<Livro> importar(File arquivo) throws IOException {
         List<Livro> livrosImportados = new ArrayList<>();
 
+        // Pré-processamento do arquivo para escapar caracteres especiais
+        String xmlProcessado = preprocessarArquivoXml(arquivo);
+
         try {
+            // Configuração do parser XML
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            // Desativar processamento de DTD para evitar ataques XXE
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setValidating(false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
             DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse(arquivo);
-            document.getDocumentElement().normalize();
 
-            // Verificar se a raiz é <livros> ou <biblioteca>
-            String nomeRaiz = document.getDocumentElement().getNodeName();
-            if (!nomeRaiz.equals("livros") && !nomeRaiz.equals("biblioteca")) {
-                LOGGER.warning("XML inválido: elemento raiz deve ser <livros> ou <biblioteca>.");
-                return livrosImportados;
-            }
+            // Usa StringReader para o XML pré-processado
+            try (StringReader reader = new StringReader(xmlProcessado)) {
+                InputSource is = new InputSource(reader);
+                Document document = builder.parse(is);
+                document.getDocumentElement().normalize();
 
-            // Processar nós de livros
-            NodeList nosLivros = document.getElementsByTagName("livro");
-            for (int i = 0; i < nosLivros.getLength(); i++) {
-                Element elementoLivro = (Element) nosLivros.item(i);
-                Livro livro = processarElementoLivro(elementoLivro);
+                // Verificar se a raiz é <livros> ou <biblioteca>
+                String nomeRaiz = document.getDocumentElement().getNodeName();
+                if (!nomeRaiz.equals("livros") && !nomeRaiz.equals("biblioteca")) {
+                    LOGGER.warning("XML inválido: elemento raiz deve ser <livros> ou <biblioteca>.");
+                    return livrosImportados;
+                }
 
-                if (livro != null && livro.getIsbn() != null && !livro.getIsbn().isEmpty()) {
-                    livrosImportados.add(livro);
+                // Processar nós de livros
+                NodeList nosLivros = document.getElementsByTagName("livro");
+                int totalLivros = nosLivros.getLength();
+                int livrosComIsbn = 0;
+
+                for (int i = 0; i < totalLivros; i++) {
+                    try {
+                        Element elementoLivro = (Element) nosLivros.item(i);
+                        Livro livro = processarElementoLivro(elementoLivro);
+
+                        // Verifica se o livro é válido (tem ISBN)
+                        if (livro != null && livro.getIsbn() != null && !livro.getIsbn().trim().isEmpty()) {
+                            livrosImportados.add(livro);
+                            livrosComIsbn++;
+                        } else {
+                            LOGGER.warning("Livro sem ISBN ignorado na posição " + (i+1) + " do XML.");
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Erro ao processar livro no XML (índice " + i + "): " + e.getMessage(), e);
+                    }
+                }
+
+                // Log de informações sobre a importação
+                if (totalLivros > 0) {
+                    LOGGER.info("Importação XML: " + livrosComIsbn + " de " + totalLivros
+                            + " livros foram importados. "
+                            + (totalLivros - livrosComIsbn) + " livros foram ignorados por falta de ISBN.");
                 }
             }
-        } catch (ParserConfigurationException | SAXException e) {
-            LOGGER.log(Level.SEVERE, "Erro ao fazer parse do XML: " + e.getMessage(), e);
+        } catch (ParserConfigurationException e) {
+            LOGGER.log(Level.SEVERE, "Erro de configuração do parser XML: " + e.getMessage(), e);
+            throw new IOException("Erro ao processar arquivo XML: " + e.getMessage(), e);
+        } catch (SAXException e) {
+            LOGGER.log(Level.SEVERE, "Erro de parsing XML: " + e.getMessage(), e);
+            throw new IOException("Erro ao processar arquivo XML: " + e.getMessage(), e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro inesperado ao processar XML: " + e.getMessage(), e);
             throw new IOException("Erro ao processar arquivo XML: " + e.getMessage(), e);
         }
 
@@ -69,57 +108,110 @@ public class XmlImportStrategy implements ImportStrategy {
     }
 
     /**
+     * Pré-processa o arquivo XML para escapar caracteres especiais problemáticos.
+     * @param arquivo Arquivo XML original
+     * @return String contendo o XML pré-processado
+     * @throws IOException Se ocorrer erro na leitura do arquivo
+     */
+    private String preprocessarArquivoXml(File arquivo) throws IOException {
+        StringBuilder conteudo = new StringBuilder();
+
+        // Lê todo o conteúdo do arquivo
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(Files.newInputStream(arquivo.toPath()), StandardCharsets.UTF_8))) {
+
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                conteudo.append(linha).append("\n");
+            }
+        }
+
+        String xmlOriginal = conteudo.toString();
+
+        Pattern ampersandPattern = Pattern.compile("&(?!(amp;|lt;|gt;|apos;|quot;))");
+        Matcher matcher = ampersandPattern.matcher(xmlOriginal);
+
+        return matcher.replaceAll("&amp;");
+    }
+
+    /**
      * Processa um elemento XML de livro para um objeto Livro
+     * @return Objeto Livro se tiver ISBN, null caso contrário
      */
     private Livro processarElementoLivro(Element elementoLivro) {
+        String isbn = getElementTextContent(elementoLivro, "isbn");
+        if (isbn.isEmpty()) {
+            return null;
+        }
+        isbn = isbn.trim();
+        if (isbn.isEmpty()) {
+            return null;
+        }
+
         Livro livro = new Livro();
+        livro.setIsbn(isbn);
 
-        // ISBN (obrigatório)
-        NodeList nosIsbn = elementoLivro.getElementsByTagName("isbn");
-        if (nosIsbn.getLength() == 0) {
-            return null; // ISBN é obrigatório
-        }
-        livro.setIsbn(nosIsbn.item(0).getTextContent().trim());
-
-        // Título
-        NodeList nosTitulo = elementoLivro.getElementsByTagName("titulo");
-        if (nosTitulo.getLength() > 0) {
-            livro.setTitulo(nosTitulo.item(0).getTextContent().trim());
+        String titulo = getElementTextContent(elementoLivro, "titulo");
+        if (!titulo.isEmpty()) {
+            livro.setTitulo(titulo);
+        } else {
+            livro.setTitulo("Livro sem título (ISBN: " + isbn.substring(Math.max(0, isbn.length() - 6)) + ")");
         }
 
-        // Data de publicação - armazena diretamente como String
-        NodeList nosData = elementoLivro.getElementsByTagName("dataPublicacao");
-        if (nosData.getLength() == 0) {
-            nosData = elementoLivro.getElementsByTagName("data_publicacao");
+        String dataPublicacao = getElementTextContent(elementoLivro, "dataPublicacao");
+        if (dataPublicacao.isEmpty()) {
+            dataPublicacao = getElementTextContent(elementoLivro, "data_publicacao");
+        }
+        if (dataPublicacao.isEmpty()) {
+            dataPublicacao = getElementTextContent(elementoLivro, "data");
+        }
+        if (!dataPublicacao.isEmpty()) {
+            livro.setDataPublicacao(dataPublicacao);
         }
 
-        if (nosData.getLength() > 0) {
-            String dataStr = nosData.item(0).getTextContent().trim();
-            if (!dataStr.isEmpty()) {
-                livro.setDataPublicacao(dataStr);
-            }
+        String nomeEditora = getElementTextContent(elementoLivro, "editora");
+        if (!nomeEditora.isEmpty()) {
+            Editora editora = new Editora(nomeEditora);
+            livro.setEditora(editora);
         }
 
-        // Editora
-        NodeList nosEditora = elementoLivro.getElementsByTagName("editora");
-        if (nosEditora.getLength() > 0) {
-            String nomeEditora = nosEditora.item(0).getTextContent().trim();
-            if (!nomeEditora.isEmpty()) {
-                Editora editora = new Editora(nomeEditora);
-                livro.setEditora(editora);
-            }
-        }
-
-        // Autores
         NodeList nosAutores = elementoLivro.getElementsByTagName("autor");
-        for (int j = 0; j < nosAutores.getLength(); j++) {
-            String nomeAutor = nosAutores.item(j).getTextContent().trim();
-            if (!nomeAutor.isEmpty()) {
-                Autor autor = new Autor(nomeAutor);
-                livro.adicionarAutor(autor);
+        if (nosAutores.getLength() > 0) {
+            for (int j = 0; j < nosAutores.getLength(); j++) {
+                String nomeAutor = nosAutores.item(j).getTextContent().trim();
+                if (!nomeAutor.isEmpty()) {
+                    Autor autor = new Autor(nomeAutor);
+                    livro.adicionarAutor(autor);
+                }
+            }
+        } else {
+            String autoresText = getElementTextContent(elementoLivro, "autores");
+            if (!autoresText.isEmpty()) {
+                String[] autoresArray = autoresText.split("[,;]");
+                for (String nomeAutor : autoresArray) {
+                    String nome = nomeAutor.trim();
+                    if (!nome.isEmpty()) {
+                        Autor autor = new Autor(nome);
+                        livro.adicionarAutor(autor);
+                    }
+                }
             }
         }
 
         return livro;
+    }
+
+    /**
+     * Obtém o conteúdo de texto de um elemento
+     * @param parent Elemento pai
+     * @param tagName Nome da tag
+     * @return Conteúdo de texto ou string vazia se não encontrar
+     */
+    private String getElementTextContent(Element parent, String tagName) {
+        NodeList nodeList = parent.getElementsByTagName(tagName);
+        if (nodeList.getLength() > 0) {
+            return nodeList.item(0).getTextContent().trim();
+        }
+        return "";
     }
 }
