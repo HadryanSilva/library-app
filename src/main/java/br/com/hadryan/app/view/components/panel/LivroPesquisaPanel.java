@@ -7,11 +7,13 @@ import br.com.hadryan.app.model.entity.Livro;
 import br.com.hadryan.app.view.MainFrame;
 import br.com.hadryan.app.view.components.base.BaseCrudPanel;
 import br.com.hadryan.app.view.components.base.BaseTable;
-import br.com.hadryan.app.view.components.base.FormPanel;
 import br.com.hadryan.app.view.components.dialog.LivroDetailsDialog;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -21,18 +23,18 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
 
     private static final long serialVersionUID = 1L;
 
-    private static final String FIELD_TITULO = "titulo";
-    private static final String FIELD_ISBN = "isbn";
-    private static final String FIELD_AUTOR = "autor";
-    private static final String FIELD_EDITORA = "editora";
-    private static final String FIELD_DATA_PUBLICACAO = "dataPublicacao";
-
     private final MainFrame janelaPrincipal;
     private final LivroController livroController;
 
-    private FormPanel searchFormPanel;
+    private JTextField tituloField;
+    private JTextField isbnField;
+    private JTextField autorField;
+    private JTextField editoraField;
+    private JTextField dataPublicacaoField;
+
     private BaseTable<Livro> resultadoTable;
     private JButton visualizarButton;
+    private JLabel resultadosLabel;
 
     /**
      * Construtor do painel de pesquisa
@@ -49,43 +51,157 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
      * Inicializa os componentes da UI
      */
     private void initComponents() {
-        searchFormPanel = new FormPanel();
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        searchFormPanel.addField("Título:", new JTextField(20), FIELD_TITULO);
-        searchFormPanel.addField("ISBN:", new JTextField(15), FIELD_ISBN);
-        searchFormPanel.addField("Autor:", new JTextField(20), FIELD_AUTOR);
-        searchFormPanel.addField("Editora:", new JTextField(20), FIELD_EDITORA);
-        searchFormPanel.addFieldWithComponent("Data de Publicação:",
-                new JTextField(10), FIELD_DATA_PUBLICACAO,
-                new JLabel("(termo parcial, ex: 2023)"));
+        JPanel searchPanel = createSearchPanel();
+        JPanel resultsPanel = createResultsPanel();
 
-        JPanel searchButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton pesquisarButton = new JButton("Pesquisar");
-        JButton limparButton = new JButton("Limpar");
+        mainPanel.add(searchPanel, BorderLayout.NORTH);
+        mainPanel.add(resultsPanel, BorderLayout.CENTER);
 
-        pesquisarButton.addActionListener(e -> realizarPesquisa());
-        limparButton.addActionListener(e -> limparFormulario());
-
-        searchButtonPanel.add(pesquisarButton);
-        searchButtonPanel.add(limparButton);
-
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(searchFormPanel, BorderLayout.CENTER);
-        topPanel.add(searchButtonPanel, BorderLayout.SOUTH);
-
-        String[] colunas = {"ID", "Título", "Autores", "ISBN", "Editora", "Data de Publicação"};
-        resultadoTable = new BaseTable<>(colunas);
-        resultadoTable.setOnDoubleClickAction(this::visualizarLivro);
-
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(resultadoTable, BorderLayout.CENTER);
         setMainComponent(mainPanel);
 
         visualizarButton = addActionButton("Visualizar Detalhes", e -> visualizarLivroSelecionado());
         addActionButton("Voltar à Lista", e -> janelaPrincipal.mostrarPainel("LISTA"));
 
         visualizarButton.setEnabled(false);
+    }
+
+    /**
+     * Cria o painel de pesquisa com layout aprimorado
+     */
+    private JPanel createSearchPanel() {
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        searchPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(),
+                "Critérios de Pesquisa",
+                TitledBorder.LEFT,
+                TitledBorder.TOP,
+                new Font(Font.DIALOG, Font.BOLD, 14)));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel tituloLabel = new JLabel("Título:");
+        tituloLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        searchPanel.add(tituloLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST;
+        tituloField = new JTextField(20);
+        searchPanel.add(tituloField, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel isbnLabel = new JLabel("ISBN:");
+        isbnLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        searchPanel.add(isbnLabel, gbc);
+
+        // Campo ISBN
+        gbc.gridx = 3;
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST;
+        isbnField = new JTextField(15);
+        searchPanel.add(isbnField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel autorLabel = new JLabel("Autor:");
+        autorLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        searchPanel.add(autorLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST;
+        autorField = new JTextField(20);
+        searchPanel.add(autorField, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel editoraLabel = new JLabel("Editora:");
+        editoraLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        searchPanel.add(editoraLabel, gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST;
+        editoraField = new JTextField(15);
+        searchPanel.add(editoraField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel dataLabel = new JLabel("Data de Publicação:");
+        dataLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        searchPanel.add(dataLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST;
+        dataPublicacaoField = new JTextField(10);
+        JPanel dataPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        dataPanel.add(dataPublicacaoField);
+        dataPanel.add(new JLabel("   (termo parcial, ex: 2023)"));
+        searchPanel.add(dataPanel, gbc);
+
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.EAST;
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton pesquisarButton = new JButton("Pesquisar");
+        pesquisarButton.setIcon(UIManager.getIcon("FileView.directoryIcon"));
+        pesquisarButton.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        pesquisarButton.addActionListener(e -> realizarPesquisa());
+
+        JButton limparButton = new JButton("Limpar");
+        limparButton.setIcon(UIManager.getIcon("FileChooser.detailsViewIcon"));
+        limparButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
+        limparButton.addActionListener(e -> limparFormulario());
+
+        buttonPanel.add(limparButton);
+        buttonPanel.add(pesquisarButton);
+        searchPanel.add(buttonPanel, gbc);
+
+        return searchPanel;
+    }
+
+    /**
+     * Cria o painel de resultados
+     */
+    private JPanel createResultsPanel() {
+        JPanel resultsPanel = new JPanel(new BorderLayout(5, 5));
+        resultsPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(),
+                "Resultados da Pesquisa",
+                TitledBorder.LEFT,
+                TitledBorder.TOP,
+                new Font(Font.DIALOG, Font.BOLD, 14)));
+
+        String[] colunas = {"ID", "Título", "Autores", "ISBN", "Editora", "Data de Publicação"};
+        resultadoTable = new BaseTable<>(colunas);
+        resultadoTable.setOnDoubleClickAction(this::visualizarLivro);
+
+        resultadosLabel = new JLabel("Nenhum resultado");
+        resultadosLabel.setFont(new Font(Font.DIALOG, Font.ITALIC, 12));
+        resultadosLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        resultsPanel.add(resultadosLabel, BorderLayout.NORTH);
+        resultsPanel.add(resultadoTable, BorderLayout.CENTER);
+
+        return resultsPanel;
     }
 
     /**
@@ -103,38 +219,52 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
     private void realizarPesquisa() {
         Livro filtro = new Livro();
 
-        String titulo = searchFormPanel.getTextFieldValue(FIELD_TITULO).trim();
+        String titulo = tituloField.getText().trim();
         if (!titulo.isEmpty()) {
             filtro.setTitulo(titulo);
         }
 
-        String isbn = searchFormPanel.getTextFieldValue(FIELD_ISBN).trim();
+        String isbn = isbnField.getText().trim();
         if (!isbn.isEmpty()) {
             filtro.setIsbn(isbn);
         }
 
-        String autor = searchFormPanel.getTextFieldValue(FIELD_AUTOR).trim();
+        String autor = autorField.getText().trim();
         if (!autor.isEmpty()) {
             Autor autorObj = new Autor(autor);
             filtro.adicionarAutor(autorObj);
         }
 
-        String editora = searchFormPanel.getTextFieldValue(FIELD_EDITORA).trim();
+        String editora = editoraField.getText().trim();
         if (!editora.isEmpty()) {
             Editora editoraObj = new Editora(editora);
             filtro.setEditora(editoraObj);
         }
 
-        String dataPublicacao = searchFormPanel.getTextFieldValue(FIELD_DATA_PUBLICACAO).trim();
+        String dataPublicacao = dataPublicacaoField.getText().trim();
         if (!dataPublicacao.isEmpty()) {
             filtro.setDataPublicacao(dataPublicacao);
         }
 
         try {
-            resultadoTable.setData(livroController.pesquisar(filtro), this::livroParaLinha);
-            exibirQuantidadeResultados();
+            List<Livro> resultados = livroController.pesquisar(filtro);
+            resultadoTable.setData(resultados, this::livroParaLinha);
+            atualizarLabelResultados(resultados.size());
         } catch (Exception e) {
             showError("Erro ao realizar pesquisa: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Atualiza o label com a quantidade de resultados
+     */
+    private void atualizarLabelResultados(int quantidade) {
+        if (quantidade == 0) {
+            resultadosLabel.setText("Nenhum resultado encontrado");
+            resultadosLabel.setForeground(Color.RED);
+        } else {
+            resultadosLabel.setText(quantidade + " livro(s) encontrado(s)");
+            resultadosLabel.setForeground(new Color(0, 100, 0)); // Verde escuro
         }
     }
 
@@ -157,24 +287,18 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
     }
 
     /**
-     * Exibe a quantidade de resultados encontrados
-     */
-    private void exibirQuantidadeResultados() {
-        int quantidade = resultadoTable.getTableModel().getRowCount();
-        showInfo(quantidade + " livro(s) encontrado(s).");
-    }
-
-    /**
      * Limpa o formulário de pesquisa e os resultados
      */
     private void limparFormulario() {
-        searchFormPanel.setTextField(FIELD_TITULO, "");
-        searchFormPanel.setTextField(FIELD_ISBN, "");
-        searchFormPanel.setTextField(FIELD_AUTOR, "");
-        searchFormPanel.setTextField(FIELD_EDITORA, "");
-        searchFormPanel.setTextField(FIELD_DATA_PUBLICACAO, "");
+        tituloField.setText("");
+        isbnField.setText("");
+        autorField.setText("");
+        editoraField.setText("");
+        dataPublicacaoField.setText("");
 
         resultadoTable.getTableModel().setRowCount(0);
+        resultadosLabel.setText("Nenhum resultado");
+        resultadosLabel.setForeground(Color.BLACK);
     }
 
     /**
@@ -202,6 +326,5 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
      */
     @Override
     public void updateData() {
-        // Não faz nada - a pesquisa é iniciada pelo usuário
     }
 }
