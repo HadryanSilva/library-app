@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Componente refatorado para seleção de livros similares.
+ * Componente para seleção de livros similares.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 public class LivrosSimilaresSelector extends JPanel {
 

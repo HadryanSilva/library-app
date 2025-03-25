@@ -24,7 +24,9 @@ import java.util.regex.Pattern;
 
 /**
  * Implementação concreta da estratégia de importação para arquivos XML.
- * Adaptada para tratar data de publicação como String.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class XmlImportStrategy implements ImportStrategy {
 
@@ -56,15 +58,12 @@ public class XmlImportStrategy implements ImportStrategy {
                 InputSource is = new InputSource(reader);
                 Document document = builder.parse(is);
                 document.getDocumentElement().normalize();
-
-                // Verificar se a raiz é <livros> ou <biblioteca>
                 String nomeRaiz = document.getDocumentElement().getNodeName();
-                if (!nomeRaiz.equals("livros") && !nomeRaiz.equals("biblioteca")) {
-                    LOGGER.warning("XML inválido: elemento raiz deve ser <livros> ou <biblioteca>.");
+                if (!nomeRaiz.equals("livros")) {
+                    LOGGER.warning("XML inválido: elemento raiz deve ser <livros>.");
                     return livrosImportados;
                 }
 
-                // Processar nós de livros
                 NodeList nosLivros = document.getElementsByTagName("livro");
                 int totalLivros = nosLivros.getLength();
                 int livrosComIsbn = 0;
@@ -74,7 +73,6 @@ public class XmlImportStrategy implements ImportStrategy {
                         Element elementoLivro = (Element) nosLivros.item(i);
                         Livro livro = processarElementoLivro(elementoLivro);
 
-                        // Verifica se o livro é válido (tem ISBN)
                         if (livro != null && livro.getIsbn() != null && !livro.getIsbn().trim().isEmpty()) {
                             livrosImportados.add(livro);
                             livrosComIsbn++;
@@ -86,7 +84,6 @@ public class XmlImportStrategy implements ImportStrategy {
                     }
                 }
 
-                // Log de informações sobre a importação
                 if (totalLivros > 0) {
                     LOGGER.info("Importação XML: " + livrosComIsbn + " de " + totalLivros
                             + " livros foram importados. "
@@ -116,7 +113,6 @@ public class XmlImportStrategy implements ImportStrategy {
     private String preprocessarArquivoXml(File arquivo) throws IOException {
         StringBuilder conteudo = new StringBuilder();
 
-        // Lê todo o conteúdo do arquivo
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(Files.newInputStream(arquivo.toPath()), StandardCharsets.UTF_8))) {
 

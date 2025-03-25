@@ -1,6 +1,7 @@
 package br.com.hadryan.app.model.entity;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
@@ -22,6 +23,7 @@ public class Editora implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "O nome da editora é obrigatório")
     @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 

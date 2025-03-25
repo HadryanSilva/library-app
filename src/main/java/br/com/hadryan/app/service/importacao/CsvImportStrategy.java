@@ -15,7 +15,9 @@ import java.util.logging.Logger;
 
 /**
  * Implementação concreta da estratégia de importação para arquivos CSV.
- * Adaptada para tratar data de publicação como String.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class CsvImportStrategy implements ImportStrategy {
 

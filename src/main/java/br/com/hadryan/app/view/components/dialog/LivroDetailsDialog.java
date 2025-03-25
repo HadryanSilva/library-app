@@ -16,7 +16,6 @@ public class LivroDetailsDialog extends BaseDialog {
 
     private static final long serialVersionUID = 1L;
 
-    // Constantes para os nomes dos campos
     private static final String FIELD_TITULO = "titulo";
     private static final String FIELD_ISBN = "isbn";
     private static final String FIELD_AUTORES = "autores";
@@ -37,7 +36,6 @@ public class LivroDetailsDialog extends BaseDialog {
         initComponents();
         preencherCampos();
 
-        // Aumentando o tamanho do diálogo
         setSize(800, 600);
         setLocationRelativeTo(parent);
     }
@@ -81,7 +79,6 @@ public class LivroDetailsDialog extends BaseDialog {
      * Preenche os campos com os dados do livro
      */
     private void preencherCampos() {
-        // Preenche campos básicos
         formPanel.setTextField(FIELD_TITULO, livro.getTitulo());
         formPanel.setTextField(FIELD_ISBN, livro.getIsbn());
 
@@ -89,18 +86,15 @@ public class LivroDetailsDialog extends BaseDialog {
             formPanel.setTextField(FIELD_EDITORA, livro.getEditora().getNome());
         }
 
-        // Exibe a data como String diretamente
         if (livro.getDataPublicacao() != null) {
             formPanel.setTextField(FIELD_DATA_PUBLICACAO, livro.getDataPublicacao());
         }
 
-        // Autores como lista separada por vírgulas
         String autores = livro.getAutores().stream()
                 .map(Autor::getNome)
                 .collect(Collectors.joining(", "));
         formPanel.setTextField(FIELD_AUTORES, autores);
 
-        // Livros similares no formato {isbn} - {name}
         String livrosSimilares = livro.getLivrosSimilares().stream()
                 .map(l -> l.getIsbn() + " - " + l.getTitulo())
                 .collect(Collectors.joining("\n"));

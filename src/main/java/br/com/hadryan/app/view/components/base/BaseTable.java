@@ -12,6 +12,9 @@ import java.util.function.Function;
 
 /**
  * Tabela base para exibição de dados
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class BaseTable<T> extends JPanel {
 

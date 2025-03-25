@@ -19,6 +19,9 @@ import java.util.stream.Collectors;
 
 /**
  * Diálogo para criação e edição de livros
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public class LivroFormDialog extends BaseDialog {
 
@@ -53,7 +56,6 @@ public class LivroFormDialog extends BaseDialog {
         setupListeners();
         preencherCampos();
 
-        // Aumentando o tamanho do diálogo
         setSize(800, 700);
         setMinimumSize(new Dimension(700, 600));
         setLocationRelativeTo(parent);
@@ -63,14 +65,11 @@ public class LivroFormDialog extends BaseDialog {
      * Inicializa os componentes do formulário
      */
     private void initComponents() {
-        // Vamos usar um layout diferente para o conteúdo principal
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        // Inicializa o FormPanel com um layout que preenche melhor o espaço
         formPanel = new FormPanel();
         formPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        // Campo ISBN com botão de busca
         buscarButton = new JButton("Buscar por ISBN");
         JPanel isbnPanel = new JPanel(new BorderLayout(5, 0));
         JTextField isbnField = new JTextField(20);
@@ -78,7 +77,6 @@ public class LivroFormDialog extends BaseDialog {
         isbnPanel.add(buscarButton, BorderLayout.EAST);
         formPanel.addFieldWithComponent("ISBN:", isbnField, FIELD_ISBN, buscarButton);
 
-        // Campos de texto com fontes maiores
         JTextField tituloField = new JTextField(40);
         tituloField.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
         formPanel.addField("Título:", tituloField, FIELD_TITULO);
@@ -102,42 +100,31 @@ public class LivroFormDialog extends BaseDialog {
         similaresLabel.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
         formPanel.addFullWidthComponent(similaresLabel, null);
 
-        // Painel para livros similares com indicador de progresso
         JPanel similaresPanel = new JPanel(new BorderLayout());
 
-        // Componente seletor de livros similares
         livrosSimilaresSelector = new LivrosSimilaresSelector(this, livroController);
 
-        // Painel de status
         JPanel statusPanel = new JPanel(new BorderLayout(5, 0));
         statusPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Progress bar
         progressBar = new JProgressBar();
         progressBar.setIndeterminate(true);
         progressBar.setVisible(false);
 
-        // Status label
         statusLabel = new JLabel("");
         statusLabel.setForeground(Color.BLUE);
 
         statusPanel.add(statusLabel, BorderLayout.CENTER);
         statusPanel.add(progressBar, BorderLayout.EAST);
 
-        // Adiciona componentes ao painel de similares
         similaresPanel.add(livrosSimilaresSelector, BorderLayout.CENTER);
         similaresPanel.add(statusPanel, BorderLayout.SOUTH);
 
-        // Adiciona o componente ao formulário com peso para que ocupe o espaço restante
         formPanel.addFullWidthComponent(similaresPanel, FIELD_SIMILARES);
 
-        // Adiciona o formulário ao painel principal, expandindo em todas as direções
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
-        // Define o painel principal como componente principal
         setMainComponent(mainPanel);
-
-        // Adiciona os botões no painel inferior
         addButton(isModoEdicao ? "Atualizar" : "Salvar", e -> salvarLivro());
         addButton("Cancelar", e -> cancel());
     }
@@ -329,7 +316,6 @@ public class LivroFormDialog extends BaseDialog {
                         finalizarBusca("Nenhum livro relacionado encontrado");
                         showInfo("Livro encontrado com sucesso, mas nenhum livro relacionado foi identificado.");
                     } else {
-                        // Adiciona os livros relacionados ao componente seletor
                         int contador = 0;
                         for (Livro livroRel : livrosRelacionados) {
                             livrosSimilaresSelector.adicionarLivro(livroRel);

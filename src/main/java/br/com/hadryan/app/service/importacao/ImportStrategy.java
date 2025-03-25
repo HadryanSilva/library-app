@@ -9,6 +9,9 @@ import java.util.List;
 /**
  * Interface para o padrão Strategy de importação de livros.
  * Define a estratégia para importação de livros de diferentes formatos de arquivo.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public interface ImportStrategy {
 

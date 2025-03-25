@@ -46,13 +46,6 @@ public class HttpClientWrapper {
     }
 
     /**
-     * Limpa o cache de requisições
-     */
-    public void clearCache() {
-        cacheRequisicoes.clear();
-    }
-
-    /**
      * Faz uma requisição GET para a URL especificada
      */
     public String fazerRequisicaoGet(String urlStr) throws IOException {

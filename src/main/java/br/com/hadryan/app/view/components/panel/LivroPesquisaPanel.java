@@ -17,7 +17,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Painel refatorado para pesquisa de livros no sistema.
+ * Painel para pesquisa de livros no sistema.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class LivroPesquisaPanel extends BaseCrudPanel {
 

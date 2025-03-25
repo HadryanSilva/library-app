@@ -16,8 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Implementação refinada da estratégia de importação para arquivos de texto com tamanho fixo.
- * Ajuste fino nos limites dos campos para garantir extração precisa.
+ * Implementação da estratégia de importação para arquivos de texto com tamanho fixo.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class FixedWidthImportStrategy implements ImportStrategy {
 

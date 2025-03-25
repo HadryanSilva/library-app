@@ -1,6 +1,7 @@
 package br.com.hadryan.app.model.entity;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
@@ -22,9 +23,11 @@ public class Livro implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "O título do livro é obrigatório")
     @Column(name = "titulo", nullable = false, length = 255)
     private String titulo;
 
+    @NotBlank(message = "O ISBN do livro é obrigatório")
     @Column(name = "isbn", unique = true, length = 20)
     private String isbn;
 

@@ -12,7 +12,10 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Painel refatorado para importação de livros a partir de arquivos.
+ * Painel para importação de livros a partir de arquivos.
+ *
+ * @author Hadryan Silva
+ * @since 22-03-2025
  */
 public class ImportacaoPanel extends BaseCrudPanel {
 

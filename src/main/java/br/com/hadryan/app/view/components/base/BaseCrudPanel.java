@@ -7,6 +7,9 @@ import java.util.function.Consumer;
 
 /**
  * Classe base para painéis CRUD
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
  */
 public abstract class BaseCrudPanel extends JPanel {
 
@@ -27,16 +30,6 @@ public abstract class BaseCrudPanel extends JPanel {
         add(toolbarPanel, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
-    }
-
-    /**
-     * Adiciona um botão à barra de ferramentas
-     */
-    protected JButton addToolbarButton(String text, Consumer<ActionEvent> action) {
-        JButton button = new JButton(text);
-        button.addActionListener(action::accept);
-        toolbarPanel.add(button);
-        return button;
     }
 
     /**

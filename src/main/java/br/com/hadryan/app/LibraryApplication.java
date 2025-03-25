@@ -15,6 +15,9 @@ import java.util.logging.Logger;
 /**
  * Classe principal da aplicação.
  * Responsável pela inicialização dos componentes e lançamento da interface gráfica.
+ *
+ * @author Hadryan Silva
+ * @since 21-03-2025
  */
 public class LibraryApplication {
 
@@ -26,24 +29,16 @@ public class LibraryApplication {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Configura o Look and Feel para uma aparência nativa
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-
-                // Inicializa o banco de dados
                 inicializarBancoDados();
-
-                // Inicializa os serviços e repositórios
                 LivroRepository livroRepository = new LivroRepository();
                 OpenLibraryService openLibraryService = new OpenLibraryService();
 
-                // Cria e configura serviços
                 LivroService livroService = new LivroService(livroRepository, openLibraryService);
                 ImportService importService = new ImportService(livroRepository);
 
-                // Cria o controller
                 LivroController livroController = new LivroController(livroService);
 
-                // Cria e exibe a interface gráfica
                 MainFrame mainFrame = new MainFrame(livroController, importService);
                 mainFrame.setVisible(true);
 
@@ -53,8 +48,6 @@ public class LibraryApplication {
                         "Erro ao iniciar a aplicação: " + e.getMessage(),
                         "Erro de Inicialização",
                         JOptionPane.ERROR_MESSAGE);
-
-                // Libera recursos e encerra a aplicação
                 liberarRecursos();
                 System.exit(1);
             }
@@ -79,7 +72,6 @@ public class LibraryApplication {
      */
     public static void liberarRecursos() {
         try {
-            // Fecha o EntityManagerFactory e recursos relacionados
             JpaConfig.getInstance().close();
             LOGGER.info("Recursos liberados com sucesso.");
         } catch (Exception e) {
