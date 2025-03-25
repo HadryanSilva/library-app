@@ -101,10 +101,33 @@ public class BaseTable<T> extends JPanel {
     }
 
     /**
+     * Obtém todos os itens selecionados (seleção múltipla)
+     */
+    public List<T> getSelectedItems() {
+        int[] selectedRows = table.getSelectedRows();
+        List<T> selectedItems = new ArrayList<>();
+
+        for (int row : selectedRows) {
+            if (row < data.size()) {
+                selectedItems.add(data.get(row));
+            }
+        }
+
+        return selectedItems;
+    }
+
+    /**
      * Obtém o modelo da tabela
      */
     public DefaultTableModel getTableModel() {
         return tableModel;
+    }
+
+    /**
+     * Obtém a tabela JTable
+     */
+    public JTable getTable() {
+        return table;
     }
 
     /**

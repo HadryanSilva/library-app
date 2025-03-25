@@ -22,7 +22,6 @@ public class LivrosSimilaresSelector extends JPanel {
     private JButton selecionarButton;
     private JButton sugerirButton;
 
-    // Map que associa ISBNs aos títulos para exibição formatada
     private final Map<String, String> isbnToTitleMap = new HashMap<>();
     private final LivroController livroController;
     private final Window parentWindow;
@@ -46,14 +45,12 @@ public class LivrosSimilaresSelector extends JPanel {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        // Área de texto que ocupa todo o espaço disponível
         selectedBooksArea = new JTextArea();
         selectedBooksArea.setLineWrap(true);
         selectedBooksArea.setWrapStyleWord(true);
         selectedBooksArea.setEditable(true);
         selectedBooksArea.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
 
-        // Botões com tamanho adequado
         selecionarButton = new JButton("Selecionar Livros");
         selecionarButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
         selecionarButton.setPreferredSize(new Dimension(150, 30));
@@ -67,7 +64,6 @@ public class LivrosSimilaresSelector extends JPanel {
      * Configura o layout do componente
      */
     private void layoutComponents() {
-        // ScrollPane para a área de texto que ocupa todo o espaço disponível
         JScrollPane scrollPane = new JScrollPane(selectedBooksArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setPreferredSize(new Dimension(500, 200));
@@ -76,17 +72,14 @@ public class LivrosSimilaresSelector extends JPanel {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
 
-        // Painel de botões com layout mais adequado
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         buttonPanel.add(sugerirButton);
         buttonPanel.add(selecionarButton);
 
-        // Adiciona os componentes ao painel principal
         add(scrollPane, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Define tamanho mínimo para garantir visibilidade adequada
         setPreferredSize(new Dimension(500, 250));
     }
 
@@ -133,6 +126,7 @@ public class LivrosSimilaresSelector extends JPanel {
         String[] colunas = {"ID", "Título", "ISBN", "Autores"};
         BaseTable<Livro> livroTable = new BaseTable<>(colunas);
 
+        livroTable.getTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         livroTable.setData(livroController.listarTodos(), livro -> new Object[] {
                 livro.getId(),
                 livro.getTitulo(),
@@ -144,7 +138,7 @@ public class LivrosSimilaresSelector extends JPanel {
 
         JPanel buttonPanel = createButtonPanel(dialog, livroTable);
 
-        dialog.add(new JScrollPane(livroTable), BorderLayout.CENTER);
+        dialog.add(new JScrollPane(livroTable.getTable()), BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
         dialog.setSize(900, 500);
         dialog.setLocationRelativeTo(parentWindow);
@@ -158,32 +152,47 @@ public class LivrosSimilaresSelector extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 10, 10));
 
-        JButton adicionarButton = new JButton("Adicionar");
+        JButton adicionarButton = new JButton("Adicionar Selecionados");
         adicionarButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
-        adicionarButton.setPreferredSize(new Dimension(120, 30));
+        adicionarButton.setPreferredSize(new Dimension(180, 30));
 
         JButton fecharButton = new JButton("Fechar");
         fecharButton.setFont(new Font(Font.DIALOG, Font.PLAIN, 14));
         fecharButton.setPreferredSize(new Dimension(120, 30));
 
         adicionarButton.addActionListener(e -> {
-            Livro livroSelecionado = livroTable.getSelectedItem();
-            if (livroSelecionado != null) {
-                if (livroAtual != null && livroAtual.getId() != null &&
-                        livroAtual.getId().equals(livroSelecionado.getId())) {
-                    JOptionPane.showMessageDialog(dialog,
-                            "Um livro não pode ser similar a ele mesmo.",
-                            "Aviso",
-                            JOptionPane.WARNING_MESSAGE);
-                    return;
+            List<Livro> livrosSelecionados = livroTable.getSelectedItems();
+            if (livrosSelecionados != null && !livrosSelecionados.isEmpty()) {
+                int countAdded = 0;
+                int countSkipped = 0;
+
+                for (Livro livroSelecionado : livrosSelecionados) {
+                    if (livroAtual != null && livroAtual.getId() != null &&
+                            livroAtual.getId().equals(livroSelecionado.getId())) {
+                        countSkipped++;
+                        continue;
+                    }
+
+                    isbnToTitleMap.put(livroSelecionado.getIsbn(), livroSelecionado.getTitulo());
+                    countAdded++;
                 }
 
-                // Adiciona o livro ao map com seu ISBN e título
-                isbnToTitleMap.put(livroSelecionado.getIsbn(), livroSelecionado.getTitulo());
                 atualizarAreaLivrosSelecionados();
+                dialog.dispose();
+
+                StringBuilder message = new StringBuilder();
+                message.append(countAdded).append(" livro(s) adicionado(s) à lista de similares.");
+                if (countSkipped > 0) {
+                    message.append("\n").append(countSkipped).append(" livro(s) ignorado(s) por ser o mesmo livro que está sendo editado.");
+                }
+
+                JOptionPane.showMessageDialog(parentWindow,
+                        message.toString(),
+                        "Livros Adicionados",
+                        JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(dialog,
-                        "Selecione um livro.",
+                        "Selecione pelo menos um livro.",
                         "Aviso",
                         JOptionPane.WARNING_MESSAGE);
             }
@@ -210,7 +219,6 @@ public class LivrosSimilaresSelector extends JPanel {
         }
 
         List<Livro> sugestoes = livroController.sugerirLivrosSimilares(livroAtual, 5);
-
         if (sugestoes.isEmpty()) {
             JOptionPane.showMessageDialog(parentWindow,
                     "Não foram encontradas sugestões de livros similares.",
@@ -220,7 +228,6 @@ public class LivrosSimilaresSelector extends JPanel {
         }
 
         for (Livro sugestao : sugestoes) {
-            // Adiciona o livro ao map com seu ISBN e título
             isbnToTitleMap.put(sugestao.getIsbn(), sugestao.getTitulo());
         }
 
@@ -244,7 +251,6 @@ public class LivrosSimilaresSelector extends JPanel {
             if (sb.length() > 0) {
                 sb.append("\n");
             }
-            // Formato: {isbn} - {name}
             sb.append(isbn).append(" - ").append(isbnToTitleMap.get(isbn));
         }
 
