@@ -42,8 +42,8 @@ Uma aplicação desktop Java para o gerenciamento de um acervo de livros, permit
 ### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/seu-usuario/biblioteca-app.git
-cd biblioteca-app
+git clone https://github.com/seu-usuario/library-app.git
+cd library-app
 ```
 
 ### 2. Inicialize o Banco de Dados com Docker
