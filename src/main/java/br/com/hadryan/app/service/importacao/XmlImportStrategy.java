@@ -45,7 +45,6 @@ public class XmlImportStrategy implements ImportStrategy {
         String xmlProcessado = preprocessarArquivoXml(arquivo);
 
         try {
-            // Configuração do parser XML
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             factory.setValidating(false);

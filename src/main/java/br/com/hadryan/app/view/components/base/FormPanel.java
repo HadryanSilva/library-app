@@ -102,7 +102,6 @@ public class FormPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // Cria um label com fonte adequada
         JLabel label = new JLabel(labelText);
         label.setFont(new Font(Font.DIALOG, Font.BOLD, 14));
 
@@ -116,11 +115,11 @@ public class FormPanel extends JPanel {
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
-        gbc.weighty = rows > 5 ? 1.0 : 0.0; // Dá peso vertical para áreas de texto grandes
+        gbc.weighty = rows > 5 ? 1.0 : 0.0;
         gbc.gridwidth = 2;
         add(scrollPane, gbc);
         gbc.gridwidth = 1;
-        gbc.weighty = 0.0; // Reseta o peso vertical
+        gbc.weighty = 0.0;
 
         fields.put(fieldName, textArea);
         currentRow++;

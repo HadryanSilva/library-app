@@ -9,6 +9,12 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Parser JSON para extrair dados obtidos nas requisições feitas para a API.
+ *
+ * @author Hadryan Silva
+ * @since 23-03-2025
+ */
 public class OpenLibraryJsonParser {
 
     private static final Logger LOGGER = Logger.getLogger(OpenLibraryJsonParser.class.getName());

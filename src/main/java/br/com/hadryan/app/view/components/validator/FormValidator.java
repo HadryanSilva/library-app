@@ -49,7 +49,7 @@ public class FormValidator {
         for (Map.Entry<JComponent, String> entry : requiredFields.entrySet()) {
             JComponent component = entry.getKey();
 
-            if (!validateComponent(component)) {
+            if (validateComponent(component)) {
                 markAsError(component);
                 isValid = false;
             }
@@ -86,7 +86,7 @@ public class FormValidator {
             JComponent component = entry.getKey();
             String fieldName = entry.getValue();
 
-            if (!validateComponent(component)) {
+            if (validateComponent(component)) {
                 errorMessage.append("- ").append(fieldName).append("\n");
                 hasErrors = true;
             }
@@ -100,12 +100,12 @@ public class FormValidator {
      */
     private boolean validateComponent(JComponent component) {
         if (component instanceof JTextComponent) {
-            return !((JTextComponent) component).getText().trim().isEmpty();
+            return ((JTextComponent) component).getText().trim().isEmpty();
         } else if (component instanceof JComboBox) {
-            return ((JComboBox<?>) component).getSelectedItem() != null;
+            return ((JComboBox<?>) component).getSelectedItem() == null;
         }
 
-        return true;
+        return false;
     }
 
     /**
