@@ -8,6 +8,7 @@ import br.com.hadryan.app.view.MainFrame;
 import br.com.hadryan.app.view.components.base.BaseCrudPanel;
 import br.com.hadryan.app.view.components.base.BaseTable;
 import br.com.hadryan.app.view.components.dialog.LivroDetailsDialog;
+import br.com.hadryan.app.view.components.validator.FormValidator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -38,6 +39,8 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
     private BaseTable<Livro> resultadoTable;
     private JButton visualizarButton;
     private JLabel resultadosLabel;
+    private JButton pesquisarButton;
+    private FormValidator validator;
 
     /**
      * Construtor do painel de pesquisa
@@ -47,6 +50,7 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
         this.livroController = livroController;
 
         initComponents();
+        setupValidation();
         setupListeners();
     }
 
@@ -69,6 +73,16 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
         addActionButton("Voltar à Lista", e -> janelaPrincipal.mostrarPainel("LISTA"));
 
         visualizarButton.setEnabled(false);
+    }
+
+    /**
+     * Configura a validação do formulário
+     */
+    private void setupValidation() {
+        validator = new FormValidator();
+
+        // Adicionamos uma validação mínima: pelo menos um campo de pesquisa deve ser preenchido
+        validator.addRequiredField(tituloField, "Pelo menos um campo de pesquisa");
     }
 
     /**
@@ -164,7 +178,7 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
         gbc.anchor = GridBagConstraints.EAST;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton pesquisarButton = new JButton("Pesquisar");
+        pesquisarButton = new JButton("Pesquisar");
         pesquisarButton.setIcon(UIManager.getIcon("FileView.directoryIcon"));
         pesquisarButton.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
         pesquisarButton.addActionListener(e -> realizarPesquisa());
@@ -214,12 +228,65 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
         resultadoTable.addSelectionListener(livro -> {
             visualizarButton.setEnabled(livro != null);
         });
+
+        // Adicionamos listeners para os campos de texto para verificar se algum deles está preenchido
+        DocumentListener documentListener = new DocumentListener();
+        tituloField.getDocument().addDocumentListener(documentListener);
+        isbnField.getDocument().addDocumentListener(documentListener);
+        autorField.getDocument().addDocumentListener(documentListener);
+        editoraField.getDocument().addDocumentListener(documentListener);
+        dataPublicacaoField.getDocument().addDocumentListener(documentListener);
+    }
+
+    /**
+     * Classe interna para monitorar alterações nos campos do formulário
+     */
+    private class DocumentListener implements javax.swing.event.DocumentListener {
+        @Override
+        public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            validateForm();
+        }
+
+        @Override
+        public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            validateForm();
+        }
+
+        @Override
+        public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            validateForm();
+        }
+    }
+
+    /**
+     * Valida o formulário verificando se pelo menos um campo está preenchido
+     */
+    private void validateForm() {
+        boolean temCampoPreenchido = !tituloField.getText().trim().isEmpty() ||
+                !isbnField.getText().trim().isEmpty() ||
+                !autorField.getText().trim().isEmpty() ||
+                !editoraField.getText().trim().isEmpty() ||
+                !dataPublicacaoField.getText().trim().isEmpty();
+
+        pesquisarButton.setEnabled(temCampoPreenchido);
     }
 
     /**
      * Realiza a pesquisa com base nos critérios informados
      */
     private void realizarPesquisa() {
+        // Validamos se há pelo menos um campo preenchido
+        boolean temCriterio = !tituloField.getText().trim().isEmpty() ||
+                !isbnField.getText().trim().isEmpty() ||
+                !autorField.getText().trim().isEmpty() ||
+                !editoraField.getText().trim().isEmpty() ||
+                !dataPublicacaoField.getText().trim().isEmpty();
+
+        if (!temCriterio) {
+            showError("Informe pelo menos um critério de pesquisa.");
+            return;
+        }
+
         Livro filtro = new Livro();
 
         String titulo = tituloField.getText().trim();
@@ -302,6 +369,12 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
         resultadoTable.getTableModel().setRowCount(0);
         resultadosLabel.setText("Nenhum resultado");
         resultadosLabel.setForeground(Color.BLACK);
+
+        // Resetamos qualquer estado de erro
+        validator.clearErrors();
+
+        // Atualizamos o estado do botão de pesquisa
+        validateForm();
     }
 
     /**
@@ -329,5 +402,6 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
      */
     @Override
     public void updateData() {
+        // Na tela de pesquisa, não precisamos carregar dados automaticamente
     }
 }

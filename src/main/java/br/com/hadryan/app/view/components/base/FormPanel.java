@@ -182,4 +182,15 @@ public class FormPanel extends JPanel {
         }
         return null;
     }
+
+    /**
+     * Obtém um campo do formulário pelo nome
+     *
+     * @param fieldName Nome do campo
+     * @return O componente associado ao nome, ou null se não existir
+     */
+    public JComponent getField(String fieldName) {
+        return fields.get(fieldName);
+    }
+
 }
