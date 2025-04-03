@@ -45,15 +45,12 @@ public class FormValidator {
         clearErrors();
 
         boolean isValid = true;
-        StringBuilder errorMessage = new StringBuilder("Os seguintes campos são obrigatórios:\n");
 
         for (Map.Entry<JComponent, String> entry : requiredFields.entrySet()) {
             JComponent component = entry.getKey();
-            String fieldName = entry.getValue();
 
             if (!validateComponent(component)) {
                 markAsError(component);
-                errorMessage.append("- ").append(fieldName).append("\n");
                 isValid = false;
             }
         }

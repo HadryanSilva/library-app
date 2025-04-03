@@ -197,7 +197,7 @@ public class LivroFormDialog extends BaseDialog {
      * Salva o livro
      */
     private void salvarLivro() {
-        // Primeiro validamos os campos
+        // Primeiro validamos os campos obrigatórios
         if (!validator.validateAll()) {
             showError(validator.getErrorMessage());
             return;
@@ -252,8 +252,9 @@ public class LivroFormDialog extends BaseDialog {
         String isbn = formPanel.getTextFieldValue(FIELD_ISBN).trim();
         if (isbn.isEmpty()) {
             showError("Digite um ISBN para busca.");
-            // Marcamos o campo de ISBN com erro
-            validator.addRequiredField(formPanel.getField(FIELD_ISBN), "ISBN").validateAll();
+            // Marcamos apenas o campo de ISBN como obrigatório para esta operação
+            FormValidator isbnValidator = new FormValidator();
+            isbnValidator.addRequiredField(formPanel.getField(FIELD_ISBN), "ISBN").validateAll();
             return;
         }
 

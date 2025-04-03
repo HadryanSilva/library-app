@@ -81,8 +81,9 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
     private void setupValidation() {
         validator = new FormValidator();
 
-        // Adicionamos uma validação mínima: pelo menos um campo de pesquisa deve ser preenchido
-        validator.addRequiredField(tituloField, "Pelo menos um campo de pesquisa");
+        // Na tela de pesquisa, não temos campos obrigatórios individuais
+        // mas precisamos que pelo menos um campo seja preenchido
+        // A validação específica é feita no momento da pesquisa
     }
 
     /**
@@ -268,7 +269,22 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
                 !editoraField.getText().trim().isEmpty() ||
                 !dataPublicacaoField.getText().trim().isEmpty();
 
+        // Atualiza o estado do botão de pesquisa
         pesquisarButton.setEnabled(temCampoPreenchido);
+
+        // Atualiza a dica visual do formulário
+        if (temCampoPreenchido) {
+            // Limpa qualquer indicação visual de erro anterior
+            validator.clearErrors();
+
+            // Atualiza estilo do botão para indicar que está pronto para pesquisar
+            pesquisarButton.setForeground(new Color(0, 100, 0));
+            pesquisarButton.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        } else {
+            // Redefine o estilo do botão para o padrão
+            pesquisarButton.setForeground(UIManager.getColor("Button.foreground"));
+            pesquisarButton.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+        }
     }
 
     /**
@@ -283,9 +299,22 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
                 !dataPublicacaoField.getText().trim().isEmpty();
 
         if (!temCriterio) {
+            // Destacamos todos os campos para indicar que pelo menos um é necessário
+            FormValidator criterioValidator = new FormValidator();
+            criterioValidator
+                    .addRequiredField(tituloField, "Título")
+                    .addRequiredField(isbnField, "ISBN")
+                    .addRequiredField(autorField, "Autor")
+                    .addRequiredField(editoraField, "Editora")
+                    .addRequiredField(dataPublicacaoField, "Data de Publicação")
+                    .validateAll();
+
             showError("Informe pelo menos um critério de pesquisa.");
             return;
         }
+
+        // Limpamos qualquer indicação visual de erro
+        validator.clearErrors();
 
         Livro filtro = new Livro();
 
@@ -360,18 +389,27 @@ public class LivroPesquisaPanel extends BaseCrudPanel {
      * Limpa o formulário de pesquisa e os resultados
      */
     private void limparFormulario() {
+        // Limpa todos os campos de entrada
         tituloField.setText("");
         isbnField.setText("");
         autorField.setText("");
         editoraField.setText("");
         dataPublicacaoField.setText("");
 
+        // Limpa a tabela de resultados
         resultadoTable.getTableModel().setRowCount(0);
         resultadosLabel.setText("Nenhum resultado");
         resultadosLabel.setForeground(Color.BLACK);
 
-        // Resetamos qualquer estado de erro
+        // Resetamos qualquer estado de erro visual
         validator.clearErrors();
+
+        // Restaura o estilo original de todos os componentes
+        tituloField.setBorder(UIManager.getBorder("TextField.border"));
+        isbnField.setBorder(UIManager.getBorder("TextField.border"));
+        autorField.setBorder(UIManager.getBorder("TextField.border"));
+        editoraField.setBorder(UIManager.getBorder("TextField.border"));
+        dataPublicacaoField.setBorder(UIManager.getBorder("TextField.border"));
 
         // Atualizamos o estado do botão de pesquisa
         validateForm();
