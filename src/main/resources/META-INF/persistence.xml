@@ -4,9 +4,9 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <!-- Entity classes -->
-        <class>br.com.hadryan.app.model.entity.Book</class>
-        <class>br.com.hadryan.app.model.entity.Author</class>
-        <class>br.com.hadryan.app.model.entity.Publisher</class>
+        <class>br.com.hadryan.app.model.entity.Livro</class>
+        <class>br.com.hadryan.app.model.entity.Autor</class>
+        <class>br.com.hadryan.app.model.entity.Editora</class>
 
         <properties>
             <!-- Database connection properties -->
